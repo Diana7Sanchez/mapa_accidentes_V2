@@ -8,10 +8,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@700&display=swap" rel="stylesheet">
 
 <style>
+/* Sidebar lateral fijo */
 #sidebar {
   position: absolute;
   top: 0;
-  left: 0;
+  left: -260px; /* Cámbialo a -260px para que inicie oculto */
   width: 260px;
   height: 100vh;
   background: #611232;
@@ -21,8 +22,46 @@
   padding: 20px;
   z-index: 1001;
   font-family: 'Noto Sans', sans-serif;
-  font-size: 14px;
+  transition: left 0.3s ease; /* Asegúrate de que tenga esta transición */
   box-shadow: 2px 0 10px rgba(0,0,0,0.4);
+}
+
+/* 1. CONFIGURACIÓN DEL SIDEBAR */
+#sidebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 260px;
+  height: 100vh;
+  background: #611232;
+  color: #a57f2c;
+  display: flex;
+  flex-direction: column; /* Organiza Header y Contenido en vertical */
+  padding: 0; /* Quitamos padding aquí para que la barra pegue al borde */
+  z-index: 1001;
+  font-family: 'Noto Sans', sans-serif;
+  transition: transform 0.3s ease;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.4);
+}
+
+/* Clase para ocultar (si la usas con JS) */
+#sidebar.oculto {
+  transform: translateX(-260px);
+}
+
+/* 2. ENCABEZADO (Fijo arriba) */
+.sidebar-header {
+  text-align: center;
+  padding: 20px 15px 10px 15px; /* Espacio para que el botón respire */
+  position: relative;
+  flex-shrink: 0; /* Evita que el header se aplaste */
+}
+
+.sidebar-header h2 {
+  font-size: 22px;
+  margin: 0;
+  color: #a57f2c;
+  font-weight: bold;
 }
 
 .sidebar-divider {
@@ -34,59 +73,96 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 1);
 }
 
-.sidebar-header {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  text-align: center;
-}
-
-.sidebar-header h2 {
-  font-size: 25px;
-  margin: 0;
-  color: #a57f2c;
-  font-weight: bold;
-}
+/* 3. CONTENEDOR DE CONTENIDO (Aquí es donde ocurre el Scroll) */
 .sidebar-content {
-  margin-top: 100px;
-  width: 100%;
+  flex-grow: 1;      /* Ocupa el resto del panel */
+  overflow-y: auto;  /* ACTIVA LA BARRA DE DESPLAZAMIENTO */
+  overflow-x: hidden;
+  padding: 0 20px 20px 20px; /* Padding interno para que nada toque los bordes */
+  scrollbar-width: thin;
+  scrollbar-color: #a57f2c rgba(0, 0, 0, 0.1);
 }
 
+/* 4. ESTILO DE LA BARRA (Scrollbar personalizada) */
+.sidebar-content::-webkit-scrollbar {
+  width: 6px; /* Barra delgada */
+}
+
+.sidebar-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+  background: #a57f2c;
+  border-radius: 10px;
+  border: 1px solid #611232;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: #f5e6b3;
+}
+
+/* 5. ELEMENTOS INTERNOS */
 #sidebar h3 {
   font-size: 16px;
-  padding: 0px;
+  margin-top: 20px;
   color: #ffffff;
+  border-left: 3px solid #a57f2c; /* Detalle elegante al lado de los subtítulos */
+  padding-left: 8px;
 }
 
 #sidebar ul {
   list-style: none;
   padding: 0;
-  margin: 20px 0;
+  margin: 15px 0;
 }
 
 #sidebar li {
   margin-bottom: 8px;
   display: flex;
   align-items: center;
+  font-size: 14px;
 }
 
 .legend-circle {
   display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid white;
+  width: 12px;
+  height: 12px;
+  border: 1px solid white;
   border-radius: 50%;
   margin-right: 8px;
+  flex-shrink: 0;
 }
 
+/* Mapa ocupa todo el espacio restante */
 #map {
   position: absolute;
   top: 0;
-  left: 260px;
-  width: calc(100% - 260px);
+  left: 0; /* Inicia desde el borde izquierdo */
+  width: 100%; /* Ocupa todo el ancho */
   height: 100vh;
+  transition: left 0.3s ease, width 0.3s ease;
 }
 
+/* Cuando el sidebar esté activo, el mapa se empuja (opcional) */
+#sidebar.activo + #map {
+  left: 260px;
+  width: calc(100% - 260px);
+}
+
+@media (max-width: 768px) {
+  #map {
+    left: 0 !important;
+    width: 100% !important;
+  }
+  #sidebar.activo + #map {
+    left: 260px;
+    width: calc(100% - 260px);
+  }
+}
+
+/* Logo fijo en esquina */
 #logo-container {
   position: fixed;
   bottom: 20px;
@@ -104,79 +180,180 @@
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
 }
 
-/* 📱 Ajustes para móviles */
-@media (max-width: 768px) {
-  #sidebar {
-    display: none !important;
-  }
-
-  #map {
-    left: 0 !important;
-    width: 100% !important;
-  }
-
-  #toggleSidebar {
-    display: none !important;
-  }
+/* Botones de filtro */
+/* Contenedores para acomodar botones en 2 columnas */
+/* Contenedores en cuadrícula (2 columnas) */
+#filtros-tipo, #filtros-tiempo {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Crea dos columnas iguales */
+  gap: 8px;        /* Espacio entre botones */
+  margin-top: 12px;
 }
 
-@media (max-width: 480px) {
-  .sidebar-content h3 {
-    font-size: 14px;
-  }
+/* Tu estilo de botón con fondo blanco */
+.btnFiltro {
+  font-family: 'Noto Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 6px;
+  border-radius: 20px;
+  border: 2px solid;
+  background: rgba(255,255,255,0.95);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  width: 100%; /* Para que llenen su celda del grid */
+}
 
-  #sidebar li {
-    font-size: 12px;
-  }
+/* Punto de color */
+.btnFiltro::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
 
-  canvas#graficoIncidentes,
-  canvas#graficoEstados {
-    max-width: 100%;
-    height: auto !important;
-  }
+/* Botón "Mostrar todos" extendido */
+.btn-full {
+  grid-column: span 2; /* Ocupa las dos columnas */
+  justify-content: center;
+}
 
-  .sidebar-content {
-    margin-top: 80px;
-  }
-
-  .sidebar-header h2 {
-    font-size: 18px;
-    text-align: center;
-  }
-
-  .btnFiltro {
-  background: #4e0e28;
+/* Ajuste específico para el dropdown de Estados para que combine */
+#filtroEstado {
+  background: #611232;
   color: #f5e6b3;
   border: 1px solid #a57f2c;
-  padding: 6px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s ease;
+  border-radius: 4px;
+  padding: 8px;
+  font-family: 'Noto Sans', sans-serif;
 }
 
-.btnFiltro:hover {
-  background: #7a1a40;
-  color: #ffffff;
-  border-color: #e6d194;
+/* Gráficos adaptativos */
+canvas#graficoIncidentes,
+canvas#graficoEstados {
+  width: 100% !important;
+  height: auto !important;
 }
+
+/* Leaflet controls */
 .leaflet-control-layers {
-  background:#611232;
-  color:#f5e6b3;
-  border:1px solid #a57f2c;
+  font-size: 14px;
+  background: #611232;
+  color: #f5e6b3;
+  border: 1px solid #a57f2c;
 }
 
 .leaflet-control-layers label {
-  color:#f5e6b3;
+  color: #f5e6b3;
 }
+
+/* Ajustes menores para pantallas muy pequeñas (≤480px) */
+@media (max-width: 480px) {
+
+  #sidebar {
+    width: 200px;
+    padding: 10px;
+  }
+
+  #sidebar .sidebar-header h2 {
+    font-size: 18px;
+  }
+
+  #sidebar h3 {
+    font-size: 14px;
+  }
+
+  .btnFiltro {
+    font-size: 12px;
+    padding: 4px 6px;
+  }
+
+  #map {
+    left: 200px;
+    width: calc(100% - 200px);
+  }
+
 }
+
+/* Sidebar deslizante para móviles */
+#sidebar {
+  transition: left 0.3s ease;
+}
+
+#sidebar.activo {
+  left: 0 !important;
+}
+
+/* Inicialmente oculto en móviles */
+@media (max-width: 768px) {
+  #sidebar {
+    left: -260px;
+    width: 260px;
+  }
+}
+
+/* Filtros */
+#filtros-tipo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+.btnFiltro {
+  min-width: 110px;
+  text-align: center;
+  cursor: pointer;
+}
+
+/* Botón del menú */
+#toggleSidebar {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 2005;
+  background: #611232;
+  color: #f5e6b3;
+  border: 1px solid #a57f2c;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  transition: top 0.3s ease;
+}
+
+/* cuando el panel está abierto */
+#sidebar.activo ~ #toggleSidebar,
+#sidebar.activo + #toggleSidebar {
+  top: 70px;
+}
+
+#toggleSidebar:hover {
+  background: #a57f2c;
+  color: #611232;
+}
+.leaflet-top.leaflet-left {
+  top: 50px;
+}
+
 </style>
 
 </head>
 <body>
+
+  <button id="toggleSidebar">☰</button>
   <div id="map"></div>
 
-  <div id="sidebar">
+ <!-- SIDEBAR -->
+<div id="sidebar">
   <div class="sidebar-header">
     <h2>Mapa de Incidentes Carreteros</h2>
     <hr class="sidebar-divider" />
@@ -185,52 +362,46 @@
   <div class="sidebar-content">
     <!-- Filtros por tipo de incidente -->
     <h3>Tipos de Incidente</h3>
-    <div id="filtros-tipo" style="display:flex; flex-wrap:wrap; gap:5px;">
-     <button class="btnFiltro" style="color:#c0392b;border-color:#c0392b;" onclick="filtrarIncidentes('atropellamiento')">Atropellamiento</button>
-
-<button class="btnFiltro" style="color:#2471a3;border-color:#2471a3;" onclick="filtrarIncidentes('choque')">Choque</button>
-
-<button class="btnFiltro" style="color:#7d3c98;border-color:#7d3c98;" onclick="filtrarIncidentes('volcadura')">Volcadura</button>
-
-<button class="btnFiltro" style="color:#ca6f1e;border-color:#ca6f1e;" onclick="filtrarIncidentes('derrape')">Derrape</button>
-
-<button class="btnFiltro" style="color:#1e8449;border-color:#1e8449;" onclick="filtrarIncidentes('caidapasajero')">Caída Pasajero</button>
-
-<button class="btnFiltro" style="color:#566573;border-color:#566573;" onclick="filtrarIncidentes('otro')">Otro</button>
-
-<button class="btnFiltro" style="color:#611232;border-color:#a57f2c;" onclick="filtrarIncidentes(null)">Mostrar Todos</button>
-    </div>
-    <h3 style="margin-top:15px;">Incidentes recientes</h3>
-
-<div style="display:flex; flex-wrap:wrap; gap:5px;">
-  <button class="btnFiltro" style="color:#2980b9;border-color:#2980b9;" onclick="filtrarTiempo(1)">Última hora</button>
-
-<button class="btnFiltro" style="color:#8e44ad;border-color:#8e44ad;" onclick="filtrarTiempo(12)">Últimas 12h</button>
-
-<button class="btnFiltro" style="color:#ca6f1e;border-color:#ca6f1e;" onclick="filtrarTiempo(24)">Últimas 24h</button>
-
-<button class="btnFiltro" style="color:#611232;border-color:#a57f2c;" onclick="filtrarTiempo(null)">Todos</button>
+<div id="filtros-tipo">
+  <button class="btnFiltro" style="color:#c0392b; border-color:#c0392b;" onclick="filtrarIncidentes('atropellamiento')">Atropellamiento</button>
+  <button class="btnFiltro" style="color:#2471a3; border-color:#2471a3;" onclick="filtrarIncidentes('choque')">Choque</button>
+  <button class="btnFiltro" style="color:#7d3c98; border-color:#7d3c98;" onclick="filtrarIncidentes('volcadura')">Volcadura</button>
+  <button class="btnFiltro" style="color:#ca6f1e; border-color:#ca6f1e;" onclick="filtrarIncidentes('derrape')">Derrape</button>
+  <button class="btnFiltro" style="color:#1e8449; border-color:#1e8449;" onclick="filtrarIncidentes('caidapasajero')">Pasajero</button>
+  <button class="btnFiltro" style="color:#566573; border-color:#566573;" onclick="filtrarIncidentes('otro')">Otro</button>
+  <button class="btnFiltro btn-full" style="color:#611232; border-color:#a57f2c;" onclick="filtrarIncidentes(null)">Mostrar todos</button>
 </div>
-    <!-- Filtro por Estado -->
+
+    <!-- Filtros por tiempo -->
+    <h3 style="margin-top:15px;">Incidentes recientes</h3>
+    <div id="filtros-tiempo">
+      <button class="btnFiltro" style="color:#2980b9;border-color:#2980b9;" onclick="filtrarTiempo(1)">Última hora</button>
+      <button class="btnFiltro" style="color:#8e44ad;border-color:#8e44ad;" onclick="filtrarTiempo(12)">Últimas 12h</button>
+      <button class="btnFiltro" style="color:#ca6f1e;border-color:#ca6f1e;" onclick="filtrarTiempo(24)">Últimas 24h</button>
+      <button class="btnFiltro" style="color:#611232;border-color:#a57f2c;" onclick="filtrarTiempo(null)">Todos</button>
+    </div>
+
+    <!-- Filtro por estado -->
     <h3 style="margin-top:15px;">Filtrar por Estado</h3>
     <select id="filtroEstado" onchange="filtrarPorEstado(this.value)" style="width:100%; padding:5px;">
       <option value="">Todos</option>
     </select>
 
-    <!-- Gráfico incidentes -->
-    <canvas id="graficoIncidentes" width="240" height="240" style="margin-top: 20px;"></canvas>
+    <!-- Gráficos -->
+    <h3 style="margin-top:20px;">Incidentes por tipo</h3>
+    <canvas id="graficoIncidentes" width="240" height="240"></canvas>
 
-    <!-- Gráfico estados con más incidentes -->
     <h3 style="margin-top:20px; font-size:15px; color:#e6d194;">Estados con más incidentes</h3>
-    <canvas id="graficoEstados" width="240" height="300" style="margin-top:10px;"></canvas>
+    <canvas id="graficoEstados" width="240" height="300"></canvas>
 
-    <!-- Hexgrid y centrar mapa -->
+    <!-- Hexgrid y centrar México -->
     <button id="btnHexgrid" onclick="toggleHexgrid()" style="margin-top: 10px;">🔷 Activar Hexgrid</button>
     <button onclick="map.setView([23.6345, -102.5528], 6)" style="margin-top:10px;">🌎 Centrar México</button>
 
     <div style="height: 80px;"></div>
   </div>
 </div>
+
 
 
 
@@ -395,13 +566,13 @@ function pintarFiltros(datos) {
       const capaDestino = incidente.tiempoReal ? capaTiempoReal : capaHistoricos;
 
       // 🔹 Crear contenido del popup
-      const popupContenido = `
+    const popupContenido = `
 <b>${incidente.tipohecho || 'SIN TIPO'}</b><br>
 📄 Dictamen: ${incidente.dictamen_no || 'N/D'}<br>
 📅 Fecha: ${incidente.fecha || 'N/D'}<br>
 🕒 Hora: ${incidente.hora || 'N/D'}<br>
 📍 ${incidente.estado || ''} - ${incidente.municipio || ''}<br>
-👮 Supervisó: ${incidente.superviso || 'N/D'}<br>
+👮 Supervisó: ${incidente.instancia || 'N/D'}<br>
 🚗 Vehículos involucrados: ${incidente.vehiculos ?? 0}<br>
 🤕 Heridos: ${incidente.heridos ?? 0}<br>
 ⚰ Fallecidos: ${incidente.fallecidos ?? 0}<br>
@@ -470,13 +641,20 @@ async function cargarActuales(){
       if (lat && lon) {
 
         // guardar en array global
-       incidentesTodos.push({
+incidentesTodos.push({
   tipohecho: incidente.tipo_hecho,
   latitud: incidente.latitud,
   longitud: incidente.lng,
   estado: incidente.estado,
+  municipio: incidente.municipio,
   fecha: incidente.fecha,
   hora: incidente.hora,
+  dictamen_no: incidente.dictamen_no,
+  instancia: incidente.instancia,
+  vehiculos: incidente.num_vehiculos,
+  heridos: incidente.heridos,
+  fallecidos: incidente.fallecidos,
+  causa: incidente.causa,
   tiempoReal: true
 });
 
@@ -667,171 +845,173 @@ const marker = L.circleMarker(
 
 
 
-// 🔹 Gráfico global para evitar múltiples instancias
+// 🔹 Variables globales para las gráficas
 let chartIncidentes;
+let chartEstados;
 
-function mostrarEstadisticas(data) {
-
-  if (!data || data.length === 0) {
-    console.warn("⚠️ No hay datos para generar estadísticas.");
-    return;
-  }
-
-  const conteo = {
-    atropellamiento: 0,
-    choque: 0,
-    volcadura: 0,
-    derrape: 0,
-    caidapasajero: 0,
-    otro: 0
-  };
-
-  data.forEach(({ tipohecho }) => {
- let tipo = tipohecho?.toLowerCase() || "otro";
-
-if (tipo.includes("atrop")) tipo = "atropellamiento";
-else if (tipo.includes("choque")) tipo = "choque";
-else if (tipo.includes("volc")) tipo = "volcadura";
-else if (tipo.includes("derrape")) tipo = "derrape";
-else if (tipo.includes("caida")) tipo = "caidapasajero";
-else tipo = "otro";
-    if (conteo[tipo] !== undefined) {
-      conteo[tipo]++;
-    } else {
-      conteo.otro++;
-    }
-  });
-
-  const ctx = document.getElementById('graficoIncidentes').getContext('2d');
-
-  if (chartIncidentes) chartIncidentes.destroy();
-
-  chartIncidentes = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: ['Atropellamiento','Choque','Volcadura','Derrape','Caída de Pasajero','Otro'],
-      datasets: [{
-        label: 'Cantidad de incidentes',
-        data: Object.values(conteo),
-        backgroundColor: ['#e74c3c','#2980b9','#8e44ad','#f39c12','#27ae60','#7f8c8d'],
-        borderRadius: 6,
-        barThickness: 18
-      }]
-    },
-    options: {
-  indexAxis: 'y',
-  responsive: true,
-
-  plugins:{
-    legend:{ display:false },
-    tooltip:{
-      callbacks:{
-        label: ctx => {
-          const total = data.length;
-          const count = ctx.parsed.x;
-          const pct = ((count/total)*100).toFixed(1);
-          return `${count} incidentes (${pct}%)`;
-        }
-      },
-      titleColor:"#611232",
-      bodyColor:"#611232",
-      backgroundColor:"#f5e6b3"
-    }
-  },
-
-  onClick:(evt,elements)=>{
-    if(elements.length>0){
-      const tipoSeleccionado =
-        chartIncidentes.data.labels[elements[0].index]
-        .toLowerCase().replace(/\s/g,'');
-
-      filtrarIncidentes(tipoSeleccionado);
-    }
-  },
-
-  scales:{
-    x:{
-      beginAtZero:true,
-      ticks:{ color:"#f5e6b3" },
-      grid:{ color:"rgba(255,255,255,0.15)" }
-    },
-    y:{
-      ticks:{ color:"#f5e6b3" },
-      grid:{ display:false }
-    }
-  }
-
-  }
-
-  }); // ← cierra new Chart
-
-
-
-} // ← 🔴 AQUÍ se cierra mostrarEstadisticas
-
-// 🔹 FILTRO DE INCIDENTES
-// 🔹 FILTRO DE INCIDENTES
-function filtrarIncidentes(tipo) {
-
-  capaHistoricos.clearLayers();
-  capaTiempoReal.clearLayers();
-
-  let filtrados = incidentesTodos;
-
-  if (tipo) {
-
-    filtrados = incidentesTodos.filter(i => {
-
-      let tipoNormalizado = i.tipohecho?.toLowerCase() || "otro";
-
-      if (tipoNormalizado.includes("atrop")) tipoNormalizado = "atropellamiento";
-      else if (tipoNormalizado.includes("choque")) tipoNormalizado = "choque";
-      else if (tipoNormalizado.includes("volc")) tipoNormalizado = "volcadura";
-      else if (tipoNormalizado.includes("derrape")) tipoNormalizado = "derrape";
-      else if (tipoNormalizado.includes("caida")) tipoNormalizado = "caidapasajero";
-      else tipoNormalizado = "otro";
-
-      return tipoNormalizado === tipo;
-
-    });
-
-  }
-
-  pintarFiltros(filtrados);
-  mostrarEstadisticas(filtrados);
+// 1. Función para unificar nombres de incidentes (Crucial para que todo coincida)
+function normalizarTipo(tipo) {
+    let t = tipo?.toLowerCase() || "otro";
+    if (t.includes("atrop")) return "atropellamiento";
+    if (t.includes("choque")) return "choque";
+    if (t.includes("volc")) return "volcadura";
+    if (t.includes("derrape")) return "derrape";
+    if (t.includes("caida")) return "caidapasajero";
+    return "otro";
 }
 
+// 2. Función Principal de Estadísticas
+function mostrarEstadisticas(data) {
+    if (!data || data.length === 0) {
+        console.warn("No hay datos para estadísticas");
+        return;
+    }
 
+    // --- CONTEO POR TIPO ---
+    const conteoTipos = {
+        atropellamiento: 0, choque: 0, volcadura: 0,
+        derrape: 0, caidapasajero: 0, otro: 0
+    };
 
-function filtrarTiempo(horas){
+    data.forEach(i => {
+        const tipo = normalizarTipo(i.tipohecho || i.tipo_hecho);
+        if (conteoTipos[tipo] !== undefined) conteoTipos[tipo]++;
+        else conteoTipos.otro++;
+    });
 
-  capaHistoricos.clearLayers();
-  capaTiempoReal.clearLayers();
+    // --- RENDERIZAR GRÁFICO DE BARRAS (TIPOS) ---
+    const ctxTipos = document.getElementById('graficoIncidentes').getContext('2d');
+    if (chartIncidentes) chartIncidentes.destroy();
 
-  if(!horas){
-    pintarFiltros(incidentesTodos);
-    mostrarEstadisticas(incidentesTodos);
-    return;
-  }
+    chartIncidentes = new Chart(ctxTipos, {
+        type: 'bar',
+        data: {
+            labels: ['Atropellamiento', 'Choque', 'Volcadura', 'Derrape', 'Caída Pasajero', 'Otro'],
+            datasets: [{
+                label: 'Cantidad de incidentes',
+                data: Object.values(conteoTipos),
+                backgroundColor: ['#e74c3c', '#2980b9', '#8e44ad', '#f39c12', '#27ae60', '#7f8c8d'],
+                borderRadius: 6,
+                barThickness: 18
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => {
+                            const total = data.length;
+                            const count = ctx.parsed.x;
+                            const pct = ((count / total) * 100).toFixed(1);
+                            return `${count} incidentes (${pct}%)`;
+                        }
+                    },
+                    titleColor: "#611232",
+                    bodyColor: "#611232",
+                    backgroundColor: "#f5e6b3"
+                }
+            },
+            onClick: (evt, elements) => {
+                if (elements.length > 0) {
+                    const idx = elements[0].index;
+                    const labelsMap = ['atropellamiento', 'choque', 'volcadura', 'derrape', 'caidapasajero', 'otro'];
+                    filtrarIncidentes(labelsMap[idx]);
+                }
+            },
+            scales: {
+                x: { beginAtZero: true, ticks: { color: "#f5e6b3" }, grid: { color: "rgba(255,255,255,0.15)" } },
+                y: { ticks: { color: "#f5e6b3" }, grid: { display: false } }
+            }
+        }
+    });
 
-  const ahora = new Date();
+    // 3. Llamar a la actualización del gráfico de Estados
+    actualizarGraficoEstados(data);
+}
 
-  const filtrados = incidentesTodos.filter(i => {
+// 4. Función para el gráfico de Estados (Dona)
+function actualizarGraficoEstados(data) {
+    const conteoEdos = {};
+    data.forEach(i => {
+        const edo = i.estado?.trim() || "No especificado";
+        conteoEdos[edo] = (conteoEdos[edo] || 0) + 1;
+    });
 
-    if(!i.tiempoReal) return false;
+    const topEstados = Object.entries(conteoEdos)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
 
-    const fechaIncidente = new Date(`${i.fecha} ${i.hora || "00:00:00"}`);
+    const ctxEdos = document.getElementById('graficoEstados').getContext('2d');
+    if (chartEstados) chartEstados.destroy();
 
-    const diferenciaHoras =
-      (ahora - fechaIncidente) / (1000 * 60 * 60);
+    chartEstados = new Chart(ctxEdos, {
+        type: 'doughnut',
+        data: {
+            labels: topEstados.map(e => e[0]),
+            datasets: [{
+                data: topEstados.map(e => e[1]),
+                backgroundColor: ['#a57f2c', '#611232', '#8e44ad', '#2980b9', '#27ae60'],
+                borderWidth: 1,
+                borderColor: '#611232'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#f5e6b3', font: { size: 10 } }
+                }
+            }
+        }
+    });
+}
 
-    return diferenciaHoras <= horas;
+// 5. Filtros de Incidentes
+function filtrarIncidentes(tipo) {
+    capaHistoricos.clearLayers();
+    capaTiempoReal.clearLayers();
 
-  });
+    let filtrados = (tipo === null)
+        ? incidentesTodos
+        : incidentesTodos.filter(i => normalizarTipo(i.tipohecho || i.tipo_hecho) === tipo);
 
-  pintarFiltros(filtrados);
-  mostrarEstadisticas(filtrados);
+    pintarFiltros(filtrados);
+    mostrarEstadisticas(filtrados);
+}
 
+// 6. Filtros por Tiempo
+function filtrarTiempo(horas) {
+    capaHistoricos.clearLayers();
+    capaTiempoReal.clearLayers();
+
+    if (!horas) {
+        pintarFiltros(incidentesTodos);
+        mostrarEstadisticas(incidentesTodos);
+        return;
+    }
+
+    const ahora = new Date();
+   const filtrados = incidentesTodos.filter(i => {
+
+  if (!horas) return true;
+
+  if (!i.tiempoReal) return true;
+
+  const fechaIncidente = new Date(i.fecha + "T" + (i.hora || "00:00"));
+
+  if (isNaN(fechaIncidente)) return false;
+
+  const diferenciaHoras = (ahora - fechaIncidente) / (1000 * 60 * 60);
+
+  return diferenciaHoras <= horas;
+});
+
+    pintarFiltros(filtrados);
+    mostrarEstadisticas(filtrados);
 }
 
 // 🔹 Hexgrid
@@ -1008,7 +1188,26 @@ async function iniciarMapa(){
 }
 
 iniciarMapa();
+const btnToggle = document.getElementById("toggleSidebar");
+const sidebar = document.getElementById("sidebar");
 
+btnToggle.addEventListener("click", () => {
+
+  sidebar.classList.toggle("activo");
+
+  if (sidebar.classList.contains("activo")) {
+
+    sidebar.style.left = "0";
+    btnToggle.style.top = "70px";   // baja el botón
+
+  } else {
+
+    sidebar.style.left = "-260px";
+    btnToggle.style.top = "10px";   // vuelve arriba
+
+  }
+
+});
 </script>
 
 </body>
