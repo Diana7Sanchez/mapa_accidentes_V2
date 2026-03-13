@@ -30,7 +30,7 @@
 #sidebar {
   position: absolute;
   top: 0;
-  left: 0;
+  left: -260px;
   width: 260px;
   height: 100vh;
   background: #611232;
@@ -343,6 +343,58 @@ canvas#graficoEstados {
 .leaflet-top.leaflet-left {
   top: 50px;
 }
+.tarjetaResumen{
+  background:#ffffff;
+  border:1px solid #a57f2c;
+  border-radius:6px;
+  padding:6px 8px;
+  margin-bottom:10px;
+  font-family:'Noto Sans', sans-serif;
+  font-size:12px;
+}
+.tituloResumen{
+  font-size:13px;
+  font-weight:bold;
+  color:#611232;
+  text-align:center;
+  cursor:pointer;
+  margin-bottom:6px;
+}
+
+#contenidoResumen{
+  display:none;
+  transition:all 0.3s ease;
+}
+
+#contenidoResumen.mostrar{
+  display:block;
+}
+
+#contenidoResumen.oculto{
+  display:none;
+}
+.tarjetaResumen h3{
+  margin-top:0;
+  font-size:16px;
+  color:#611232;
+  text-align:center;
+}
+
+.datoResumen{
+  display:flex;
+  justify-content:space-between;
+  padding:2px 0;
+  border-bottom:1px solid #eee;
+  font-size:11px;
+}
+
+.datoResumen:last-child{
+  border-bottom:none;
+}
+
+.datoResumen b{
+  color:#611232;
+}
 
 </style>
 
@@ -352,24 +404,85 @@ canvas#graficoEstados {
   <button id="toggleSidebar">☰</button>
   <div id="map"></div>
 
- <!-- SIDEBAR -->
+<!-- SIDEBAR -->
 <div id="sidebar">
+
   <div class="sidebar-header">
     <h2>Mapa de Incidentes Carreteros</h2>
     <hr class="sidebar-divider" />
   </div>
 
   <div class="sidebar-content">
+
+    <!-- TARJETA RESUMEN -->
+    <div id="resumen24h" class="tarjetaResumen">
+
+      <div id="toggleResumen" class="tituloResumen">
+  Resumen últimas 24 h ▸
+</div>
+
+      <div id="contenidoResumen">
+
+        <div class="datoResumen">
+          <span>Incidentes</span>
+          <b id="total24h">0</b>
+        </div>
+
+        <div class="datoResumen">
+          <span>Heridos</span>
+          <b id="heridos24h">0</b>
+        </div>
+
+        <div class="datoResumen">
+          <span>Fallecidos</span>
+          <b id="fallecidos24h">0</b>
+        </div>
+
+        <div class="datoResumen">
+          <span>Estado con más incidentes</span>
+          <b id="estadoTop">-</b>
+        </div>
+
+        <div class="datoResumen">
+          <span>Municipio con más incidentes</span>
+          <b id="municipioTop">-</b>
+        </div>
+
+      </div>
+    </div>
+
     <!-- Filtros por tipo de incidente -->
     <h3>Tipos de Incidente</h3>
 <div id="filtros-tipo">
-  <button class="btnFiltro" style="color:#c0392b; border-color:#c0392b;" onclick="filtrarIncidentes('atropellamiento')">Atropellamiento</button>
-  <button class="btnFiltro" style="color:#2471a3; border-color:#2471a3;" onclick="filtrarIncidentes('choque')">Choque</button>
-  <button class="btnFiltro" style="color:#7d3c98; border-color:#7d3c98;" onclick="filtrarIncidentes('volcadura')">Volcadura</button>
-  <button class="btnFiltro" style="color:#ca6f1e; border-color:#ca6f1e;" onclick="filtrarIncidentes('derrape')">Derrape</button>
-  <button class="btnFiltro" style="color:#1e8449; border-color:#1e8449;" onclick="filtrarIncidentes('caidapasajero')">Pasajero</button>
-  <button class="btnFiltro" style="color:#566573; border-color:#566573;" onclick="filtrarIncidentes('otro')">Otro</button>
-  <button class="btnFiltro btn-full" style="color:#611232; border-color:#a57f2c;" onclick="filtrarIncidentes(null)">Mostrar todos</button>
+
+  <button class="btnFiltro" style="color:#2471a3; border-color:#2471a3;" onclick="filtrarIncidentes('choque')">
+    Choque
+  </button>
+
+  <button class="btnFiltro" style="color:#ca6f1e; border-color:#ca6f1e;" onclick="filtrarIncidentes('derrape')">
+    Derrape
+  </button>
+
+  <button class="btnFiltro" style="color:#7d3c98; border-color:#7d3c98;" onclick="filtrarIncidentes('volcadura')">
+    Volcadura
+  </button>
+
+  <button class="btnFiltro" style="color:#c0392b; border-color:#c0392b;" onclick="filtrarIncidentes('atropellamiento')">
+    Atropellamiento
+  </button>
+
+  <button class="btnFiltro" style="color:#1e8449; border-color:#1e8449;" onclick="filtrarIncidentes('caidapasajero')">
+    Caída pasajero
+  </button>
+
+  <button class="btnFiltro" style="color:#566573; border-color:#566573;" onclick="filtrarIncidentes('otro')">
+    Otro
+  </button>
+
+  <button class="btnFiltro btn-full" style="color:#611232; border-color:#a57f2c;" onclick="filtrarIncidentes(null)">
+    Mostrar todos
+  </button>
+
 </div>
 
     <!-- Filtros por tiempo -->
@@ -399,9 +512,9 @@ canvas#graficoEstados {
     <button onclick="map.setView([23.6345, -102.5528], 6)" style="margin-top:10px;">🌎 Centrar México</button>
 
     <div style="height: 80px;"></div>
-  </div>
-</div>
 
+</div> <!-- sidebar-content -->
+</div> <!-- sidebar -->
 
 
 
@@ -530,7 +643,6 @@ function filtrarPorEstado(estado) {
 
 }
 
-// Actualiza mapa con filtros
 function pintarFiltros(datos) {
 
   // Limpiar capas
@@ -538,7 +650,7 @@ function pintarFiltros(datos) {
   capaTiempoReal.clearLayers();
 
   // 🔹 Separar y unir arrays: primero tiempo real, luego históricos
-  const tiempoReal = datos.filter(d => !!d.tiempoReal); // fuerza booleano
+  const tiempoReal = datos.filter(d => !!d.tiempoReal);
   const historicos = datos.filter(d => !d.tiempoReal);
   const datosOrdenados = [...tiempoReal, ...historicos];
 
@@ -562,11 +674,9 @@ function pintarFiltros(datos) {
 
       const estilo = colores[tipo] || colores.otro;
 
-      // Definir a qué capa va el marcador
       const capaDestino = incidente.tiempoReal ? capaTiempoReal : capaHistoricos;
 
-      // 🔹 Crear contenido del popup
-    const popupContenido = `
+      const popupContenido = `
 <b>${incidente.tipohecho || 'SIN TIPO'}</b><br>
 📄 Dictamen: ${incidente.dictamen_no || 'N/D'}<br>
 📅 Fecha: ${incidente.fecha || 'N/D'}<br>
@@ -579,7 +689,6 @@ function pintarFiltros(datos) {
 ❗ Posible causa: ${incidente.causa || 'N/D'}
 `;
 
-      // 🔹 Crear marcador en el mapa
       L.circleMarker([lat, lon], {
         radius: 6,
         color: estilo.color,
@@ -593,6 +702,58 @@ function pintarFiltros(datos) {
     }
 
   });
+
+  // 🔹 ACTUALIZA LA TARJETA DE RESUMEN
+  actualizarResumen24h(datos);
+
+}
+function actualizarResumen24h(datos){
+
+  const ahora = new Date();
+  const hace24h = new Date(ahora - 24*60*60*1000);
+
+  let total = 0;
+  let heridos = 0;
+  let fallecidos = 0;
+
+  let estados = {};
+  let municipios = {};
+
+  datos.forEach(i => {
+
+    if(!i.fecha) return;
+
+    const fechaIncidente = new Date(i.fecha + "T" + (i.hora || "00:00"));
+
+    if(fechaIncidente >= hace24h){
+
+      total++;
+
+      heridos += Number(i.heridos || 0);
+      fallecidos += Number(i.fallecidos || 0);
+
+      if(i.estado){
+        estados[i.estado] = (estados[i.estado] || 0) + 1;
+      }
+
+      if(i.municipio){
+        municipios[i.municipio] = (municipios[i.municipio] || 0) + 1;
+      }
+
+    }
+
+  });
+
+  function obtenerMayor(obj){
+    return Object.entries(obj).sort((a,b)=>b[1]-a[1])[0]?.[0] || "-";
+  }
+
+  document.getElementById("total24h").textContent = total;
+  document.getElementById("heridos24h").textContent = heridos;
+  document.getElementById("fallecidos24h").textContent = fallecidos;
+
+  document.getElementById("estadoTop").textContent = obtenerMayor(estados);
+  document.getElementById("municipioTop").textContent = obtenerMayor(municipios);
 
 }
 
@@ -1188,23 +1349,35 @@ async function iniciarMapa(){
 }
 
 iniciarMapa();
-const btnToggle = document.getElementById("toggleSidebar");
+
+const toggleResumen = document.getElementById("toggleResumen");
+const contenidoResumen = document.getElementById("contenidoResumen");
+
+toggleResumen.addEventListener("click", () => {
+
+contenidoResumen.classList.toggle("mostrar");
+
+if(contenidoResumen.classList.contains("mostrar")){
+    toggleResumen.innerHTML = "Resumen últimas 24 h ▸";
+  }else{
+    toggleResumen.innerHTML = "Resumen últimas 24 h ▾";
+  }
+
+});
+
+
+// BOTÓN DEL SIDEBAR
+const toggleSidebarBtn = document.getElementById("toggleSidebar");
 const sidebar = document.getElementById("sidebar");
 
-btnToggle.addEventListener("click", () => {
+toggleSidebarBtn.addEventListener("click", () => {
 
   sidebar.classList.toggle("activo");
 
-  if (sidebar.classList.contains("activo")) {
-
-    sidebar.style.left = "0";
-    btnToggle.style.top = "70px";   // baja el botón
-
-  } else {
-
-    sidebar.style.left = "-260px";
-    btnToggle.style.top = "10px";   // vuelve arriba
-
+  if(sidebar.classList.contains("activo")){
+    toggleSidebarBtn.style.top = "70px";
+  }else{
+    toggleSidebarBtn.style.top = "10px";
   }
 
 });
