@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mapa de Incidentes</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@700&display=swap" rel="stylesheet">
+
+<style>
+/* Sidebar lateral fijo */
+#sidebar {
+  position: absolute;
+  top: 0;
+  left: -260px; /* Cámbialo a -260px para que inicie oculto */
+  width: 260px;
+  height: 100vh;
+  background: #611232;
+  color: #a57f2c;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  z-index: 1001;
+  font-family: 'Noto Sans', sans-serif;
+  transition: left 0.3s ease; /* Asegúrate de que tenga esta transición */
+  box-shadow: 2px 0 10px rgba(0,0,0,0.4);
+}
+
+/* 1. CONFIGURACIÓN DEL SIDEBAR */
+#sidebar {
+  position: absolute;
+  top: 0;
+  left: -260px;
+  width: 260px;
+  height: 100vh;
+  background: #611232;
+  color: #a57f2c;
+  display: flex;
+  flex-direction: column; /* Organiza Header y Contenido en vertical */
+  padding: 0; /* Quitamos padding aquí para que la barra pegue al borde */
+  z-index: 1001;
+  font-family: 'Noto Sans', sans-serif;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.4);
+}
+
+/* Clase para ocultar (si la usas con JS) */
+#sidebar.oculto {
+  transform: translateX(-260px);
+}
+
+/* 2. ENCABEZADO (Fijo arriba) */
+.sidebar-header {
+  text-align: center;
+  padding: 20px 15px 10px 15px; /* Espacio para que el botón respire */
+  position: relative;
+  flex-shrink: 0; /* Evita que el header se aplaste */
+}
+
+.sidebar-header h2 {
+  font-size: 22px;
+  margin: 0;
+  color: #a57f2c;
+  font-weight: bold;
+}
+
+.sidebar-divider {
+  border: none;
+  height: 4px;
+  width: 100%;
+  margin-top: 6px;
+  background: rgba(165, 127, 44, 0.6);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 1);
+}
+
+/* 3. CONTENEDOR DE CONTENIDO (Aquí es donde ocurre el Scroll) */
+.sidebar-content {
+  flex-grow: 1;      /* Ocupa el resto del panel */
+  overflow-y: auto;  /* ACTIVA LA BARRA DE DESPLAZAMIENTO */
+  overflow-x: hidden;
+  padding: 0 20px 20px 20px; /* Padding interno para que nada toque los bordes */
+  scrollbar-width: thin;
+  scrollbar-color: #a57f2c rgba(0, 0, 0, 0.1);
+}
+
+/* 4. ESTILO DE LA BARRA (Scrollbar personalizada) */
+.sidebar-content::-webkit-scrollbar {
+  width: 6px; /* Barra delgada */
+}
+
+.sidebar-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+  background: #a57f2c;
+  border-radius: 10px;
+  border: 1px solid #611232;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: #f5e6b3;
+}
+
+/* 5. ELEMENTOS INTERNOS */
+#sidebar h3 {
+  font-size: 16px;
+  margin-top: 20px;
+  color: #ffffff;
+  border-left: 3px solid #a57f2c; /* Detalle elegante al lado de los subtítulos */
+  padding-left: 8px;
+}
+
+#sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 15px 0;
+}
+
+#sidebar li {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+}
+
+.legend-circle {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1px solid white;
+  border-radius: 50%;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+/* Mapa ocupa todo el espacio restante */
+#map {
+  position: absolute;
+  top: 0;
+  left: 0; /* Inicia desde el borde izquierdo */
+  width: 100%; /* Ocupa todo el ancho */
+  height: 100vh;
+  transition: left 0.3s ease, width 0.3s ease;
+}
+
+/* Cuando el sidebar esté activo, el mapa se empuja (opcional) */
+#sidebar.activo + #map {
+  left: 260px;
+  width: calc(100% - 260px);
+}
+
+@media (max-width: 768px) {
+  #map {
+    left: 0 !important;
+    width: 100% !important;
+  }
+  #sidebar.activo + #map {
+    left: 260px;
+    width: calc(100% - 260px);
+  }
+}
+
+/* Logo fijo en esquina */
+#logo-container {
+  position: fixed;
+  bottom: 20px;
+  right: 10px;
+  z-index: 9999;
+  background: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+#logo-container img {
+  width: 300px;
+  height: auto;
+  max-width: 100vw;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+/* Botones de filtro */
+/* Contenedores para acomodar botones en 2 columnas */
+/* Contenedores en cuadrícula (2 columnas) */
+#filtros-tipo, #filtros-tiempo {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Crea dos columnas iguales */
+  gap: 8px;        /* Espacio entre botones */
+  margin-top: 12px;
+}
+
+/* Tu estilo de botón con fondo blanco */
+.btnFiltro {
+  font-family: 'Noto Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 6px;
+  border-radius: 20px;
+  border: 2px solid;
+  background: rgba(255,255,255,0.95);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  width: 100%; /* Para que llenen su celda del grid */
+}
+
+/* Punto de color */
+.btnFiltro::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* Botón "Mostrar todos" extendido */
+.btn-full {
+  grid-column: span 2; /* Ocupa las dos columnas */
+  justify-content: center;
+}
+
+/* Ajuste específico para el dropdown de Estados para que combine */
+#filtroEstado {
+  background: #611232;
+  color: #f5e6b3;
+  border: 1px solid #a57f2c;
+  border-radius: 4px;
+  padding: 8px;
+  font-family: 'Noto Sans', sans-serif;
+}
+
+/* Gráficos adaptativos */
+canvas#graficoIncidentes,
+canvas#graficoEstados {
+  width: 100% !important;
+  height: auto !important;
+}
+
+/* Leaflet controls */
+.leaflet-control-layers {
+  font-size: 14px;
+  background: #611232;
+  color: #f5e6b3;
+  border: 1px solid #a57f2c;
+}
+
+.leaflet-control-layers label {
+  color: #f5e6b3;
+}
+.visor.oculto {
+  display: none;
+}
+.visor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.9);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  z-index: 99999;
+}
+#imagenGrande {
+  max-width: 90%;
+  max-height: 90%;
+  transition: transform 0.3s ease;
+  cursor: zoom-in;
+}
+
+#cerrarVisor {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  font-size: 30px;
+  color: white;
+  cursor: pointer;
+  z-index: 100000;
+}
+
+/* Ajustes menores para pantallas muy pequeñas (≤480px) */
+@media (max-width: 480px) {
+
+  #sidebar {
+    width: 200px;
+    padding: 10px;
+  }
+
+  #sidebar .sidebar-header h2 {
+    font-size: 18px;
+  }
+
+  #sidebar h3 {
+    font-size: 14px;
+  }
+
+  .btnFiltro {
+    font-size: 12px;
+    padding: 4px 6px;
+  }
+
+  #map {
+    left: 200px;
+    width: calc(100% - 200px);
+  }
+
+}
+
+/* Sidebar deslizante para móviles */
+#sidebar {
+  transition: left 0.3s ease;
+}
+
+#sidebar.activo {
+  left: 0 !important;
+}
+
+/* Inicialmente oculto en móviles */
+@media (max-width: 768px) {
+  #sidebar {
+    left: -260px;
+    width: 260px;
+  }
+}
+
+/* Filtros */
+#filtros-tipo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+.btnFiltro {
+  min-width: 110px;
+  text-align: center;
+  cursor: pointer;
+}
+
+/* Botón del menú */
+#toggleSidebar {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 2005;
+  background: #611232;
+  color: #f5e6b3;
+  border: 1px solid #a57f2c;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  transition: top 0.3s ease;
+}
+
+/* cuando el panel está abierto */
+#sidebar.activo ~ #toggleSidebar,
+#sidebar.activo + #toggleSidebar {
+  top: 70px;
+}
+
+#toggleSidebar:hover {
+  background: #a57f2c;
+  color: #611232;
+}
+.leaflet-top.leaflet-left {
+  top: 50px;
+}
+.tarjetaResumen{
+  background:#ffffff;
+  border:1px solid #a57f2c;
+  border-radius:6px;
+  padding:6px 8px;
+  margin-bottom:10px;
+  font-family:'Noto Sans', sans-serif;
+  font-size:12px;
+}
+.tituloResumen{
+  font-size:13px;
+  font-weight:bold;
+  color:#611232;
+  text-align:center;
+  cursor:pointer;
+  margin-bottom:6px;
+}
+
+#contenidoResumen{
+  display:none;
+  transition:all 0.3s ease;
+}
+
+#contenidoResumen.mostrar{
+  display:block;
+}
+
+#contenidoResumen.oculto{
+  display:none;
+}
+.tarjetaResumen h3{
+  margin-top:0;
+  font-size:16px;
+  color:#611232;
+  text-align:center;
+}
+
+.datoResumen{
+  display:flex;
+  justify-content:space-between;
+  padding:2px 0;
+  border-bottom:1px solid #eee;
+  font-size:11px;
+}
+
+.datoResumen:last-child{
+  border-bottom:none;
+}
+
+.datoResumen b{
+  color:#611232;
+}
+
+</style>
+
+</head>
+<body>
+
+  <button id="toggleSidebar">☰</button>
+  <div id="map"></div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+
+  <div class="sidebar-header">
+    <h2>Mapa de Incidentes Carreteros</h2>
+    <hr class="sidebar-divider" />
+  </div>
+
+  <div class="sidebar-content">
+
+    <!-- TARJETA RESUMEN -->
+    <div id="resumen24h" class="tarjetaResumen">
+
+      <div id="toggleResumen" class="tituloResumen">
+  Resumen últimas 24 h ▸
+</div>
+
+      <div id="contenidoResumen">
+
+        <div class="datoResumen">
+          <span>Incidentes</span>
+          <b id="total24h">0</b>
+        </div>
+
+        <div class="datoResumen">
+          <span>Heridos</span>
+          <b id="heridos24h">0</b>
+        </div>
+
+        <div class="datoResumen">
+          <span>Fallecidos</span>
+          <b id="fallecidos24h">0</b>
+        </div>
+
+        <div class="datoResumen">
+          <span>Estado con más incidentes</span>
+          <b id="estadoTop">-</b>
+        </div>
+
+        <div class="datoResumen">
+          <span>Municipio con más incidentes</span>
+          <b id="municipioTop">-</b>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Filtros por tipo de incidente -->
+    <h3>Tipos de Incidente</h3>
+<div id="filtros-tipo">
+
+  <button class="btnFiltro" style="color:#2471a3; border-color:#2471a3;" onclick="filtrarIncidentes('choque')">
+    Choque
+  </button>
+
+  <button class="btnFiltro" style="color:#ca6f1e; border-color:#ca6f1e;" onclick="filtrarIncidentes('derrape')">
+    Derrape
+  </button>
+
+  <button class="btnFiltro" style="color:#7d3c98; border-color:#7d3c98;" onclick="filtrarIncidentes('volcadura')">
+    Volcadura
+  </button>
+
+  <button class="btnFiltro" style="color:#c0392b; border-color:#c0392b;" onclick="filtrarIncidentes('atropellamiento')">
+    Atropellamiento
+  </button>
+
+  <button class="btnFiltro" style="color:#1e8449; border-color:#1e8449;" onclick="filtrarIncidentes('caidapasajero')">
+    Caída pasajero
+  </button>
+
+  <button class="btnFiltro" style="color:#566573; border-color:#566573;" onclick="filtrarIncidentes('otro')">
+    Otro
+  </button>
+
+  <button class="btnFiltro btn-full" style="color:#611232; border-color:#a57f2c;" onclick="filtrarIncidentes(null)">
+    Mostrar todos
+  </button>
+
+</div>
+
+    <!-- Filtros por tiempo -->
+    <h3 style="margin-top:15px;">Incidentes recientes</h3>
+    <div id="filtros-tiempo">
+      <button class="btnFiltro" style="color:#2980b9;border-color:#2980b9;" onclick="filtrarTiempo(1)">Última hora</button>
+      <button class="btnFiltro" style="color:#8e44ad;border-color:#8e44ad;" onclick="filtrarTiempo(12)">Últimas 12h</button>
+      <button class="btnFiltro" style="color:#ca6f1e;border-color:#ca6f1e;" onclick="filtrarTiempo(24)">Últimas 24h</button>
+      <button class="btnFiltro" style="color:#611232;border-color:#a57f2c;" onclick="filtrarTiempo(null)">Todos</button>
+    </div>
+
+    <!-- Filtro por estado -->
+    <h3 style="margin-top:15px;">Filtrar por Estado</h3>
+    <select id="filtroEstado" onchange="filtrarPorEstado(this.value)" style="width:100%; padding:5px;">
+      <option value="">Todos</option>
+    </select>
+
+    <!-- Gráficos -->
+    <h3 style="margin-top:20px;">Incidentes por tipo</h3>
+    <canvas id="graficoIncidentes" width="240" height="240"></canvas>
+
+    <h3 style="margin-top:20px; font-size:15px; color:#e6d194;">Estados con más incidentes</h3>
+    <canvas id="graficoEstados" width="240" height="300"></canvas>
+
+    <!-- Hexgrid y centrar México -->
+    <button id="btnHexgrid" onclick="toggleHexgrid()" style="margin-top: 10px;">🔷 Activar Hexgrid</button>
+    <button onclick="map.setView([23.6345, -102.5528], 6)" style="margin-top:10px;">🌎 Centrar México</button>
+
+    <div style="height: 80px;"></div>
+
+</div> <!-- sidebar-content -->
+</div> <!-- sidebar -->
+
+
+
+<!-- SCRIPT TURF -->
+  <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>	
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+ <div id="visorImagen" class="visor oculto">
+  <span id="cerrarVisor">✕</span>
+  <img id="imagenGrande" src="" />
+</div>
+<script>
+
+
+    const map = L.map('map').setView([23.6345, -102.5528], 6);
+    // Capas separadas
+let capaHistoricos = L.layerGroup().addTo(map);
+let capaTiempoReal = L.layerGroup().addTo(map);
+
+    const openStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    });
+
+    const esriWorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles © Esri'
+    });
+
+    const googleSatellite = L.tileLayer('http://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+      attribution: 'Google Satellite',
+      maxZoom: 20
+    });
+
+    const googleHybrid = L.tileLayer('http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+      attribution: 'Google Hybrid',
+      maxZoom: 20
+    });
+
+  const darkMatter = L.tileLayer(
+  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  {
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }
+);
+
+const baseMaps = {
+  "Carto Dark Matter": darkMatter,
+  "OpenStreetMap": openStreetMap,
+  "ESRI World Imagery": esriWorldImagery,
+  "Google Satellite": googleSatellite,
+  "Google Hybrid": googleHybrid
+};
+const overlayMaps = {
+  "Incidentes en Tiempo Real": capaTiempoReal,
+  "Incidentes Históricos": capaHistoricos
+};
+
+openStreetMap.addTo(map);
+
+L.control.layers(null, overlayMaps, {
+  position: 'topright',
+  collapsed:false
+}).addTo(map);
+
+L.control.layers(baseMaps, null, {
+  position: 'bottomright',
+  collapsed:false
+}).addTo(map);
+
+// 🔹 Detectar cambio de capas para actualizar gráfica
+map.on('overlayadd', function(e) {
+
+  if (e.name === "Incidentes en Tiempo Real") {
+
+    const soloTiempoReal = incidentesTodos.filter(i => i.tiempoReal);
+    mostrarEstadisticas(soloTiempoReal);
+
+  }
+
+  if (e.name === "Incidentes Históricos") {
+
+    const soloHistoricos = incidentesTodos.filter(i => !i.tiempoReal);
+    mostrarEstadisticas(soloHistoricos);
+
+  }
+
+});
+
+map.on('overlayremove', function(e) {
+
+  if (e.name === "Incidentes en Tiempo Real") {
+
+    const soloHistoricos = incidentesTodos.filter(i => !i.tiempoReal);
+    mostrarEstadisticas(soloHistoricos);
+
+  }
+
+  if (e.name === "Incidentes Históricos") {
+
+    const soloTiempoReal = incidentesTodos.filter(i => i.tiempoReal);
+    mostrarEstadisticas(soloTiempoReal);
+
+  }
+
+});
+    const supabaseUrl = 'https://jjuqauxmkwqggvkayzxr.supabase.co';
+    const supabaseKey = 'sb_publishable_4EZ3TWp81gUYerPR9aNgJg_we2oIqAc'; 
+    const { createClient } = supabase;
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+let incidentesOriginales = [];
+let capaIncidentes = null;
+let incidentesTodos = []; // 🚨 Nuevo array que unifica históricos + actuales
+
+// Filtrar por estado
+function filtrarPorEstado(estado) {
+
+  let filtrados = incidentesTodos;
+
+  if (estado) {
+    filtrados = incidentesTodos.filter(i => i.estado === estado);
+  }
+
+  pintarFiltros(filtrados);
+  mostrarEstadisticas(filtrados);
+
+}
+
+function pintarFiltros(datos) {
+
+  // Limpiar capas
+  capaHistoricos.clearLayers();
+  capaTiempoReal.clearLayers();
+
+  // 🔹 Separar y unir arrays: primero tiempo real, luego históricos
+  const tiempoReal = datos.filter(d => !!d.tiempoReal);
+  const historicos = datos.filter(d => !d.tiempoReal);
+  const datosOrdenados = [...tiempoReal, ...historicos];
+
+  datosOrdenados.forEach(incidente => {
+
+    const lat = parseFloat(incidente.latitud);
+    const lon = parseFloat(incidente.longitud);
+
+    if (!isNaN(lat) && !isNaN(lon)) {
+
+      const tipo = incidente.tipohecho?.toLowerCase().replace(/\s/g,'') || "otro";
+
+      const colores = {
+        atropellamiento: { color:"#e74c3c", fillColor:"#f1948a" },
+        choque: { color:"#2980b9", fillColor:"#85c1e9" },
+        volcadura: { color:"#8e44ad", fillColor:"#d2b4de" },
+        derrape: { color:"#f39c12", fillColor:"#f9e79f" },
+        caidapasajero: { color:"#27ae60", fillColor:"#a9dfbf" },
+        otro: { color:"#7f8c8d", fillColor:"#d5d8dc" }
+      };
+
+      const estilo = colores[tipo] || colores.otro;
+
+      const capaDestino = incidente.tiempoReal ? capaTiempoReal : capaHistoricos;
+
+const imagenHTML = incidente.foto
+  ? `<img src="${incidente.foto}" 
+          onclick="abrirImagen('${incidente.foto}')"
+          style="width:100%; max-width:250px; margin-top:8px; border-radius:6px; cursor:pointer;" />`
+  : "";
+
+const popupContenido = `
+<b>${incidente.tipohecho || 'SIN TIPO'}</b><br>
+📄 Dictamen: ${incidente.dictamen_no || 'N/D'}<br>
+📅 Fecha: ${incidente.fecha || 'N/D'}<br>
+🕒 Hora: ${incidente.hora || 'N/D'}<br>
+📍 ${incidente.estado || ''} - ${incidente.municipio || ''}<br>
+👮 Supervisó: ${incidente.instancia || 'N/D'}<br>
+🚗 Vehículos involucrados: ${incidente.vehiculos ?? 0}<br>
+🤕 Heridos: ${incidente.heridos ?? 0}<br>
+⚰ Fallecidos: ${incidente.fallecidos ?? 0}<br>
+❗ Posible causa: ${incidente.causa || 'N/D'}
+${imagenHTML}
+`;
+
+      L.circleMarker([lat, lon], {
+        radius: 6,
+        color: estilo.color,
+        fillColor: estilo.fillColor,
+        fillOpacity: 1,
+        weight: 2
+      })
+      .bindPopup(popupContenido)
+      .addTo(capaDestino);
+
+    }
+
+  });
+
+  // 🔹 ACTUALIZA LA TARJETA DE RESUMEN
+  actualizarResumen24h(datos);
+
+}
+function actualizarResumen24h(datos){
+
+  const ahora = new Date();
+  const hace24h = new Date(ahora - 24*60*60*1000);
+
+  let total = 0;
+  let heridos = 0;
+  let fallecidos = 0;
+
+  let estados = {};
+  let municipios = {};
+
+  datos.forEach(i => {
+
+    if(!i.fecha) return;
+
+    const fechaIncidente = new Date(i.fecha + "T" + (i.hora || "00:00"));
+
+    if(fechaIncidente >= hace24h){
+
+      total++;
+
+      heridos += Number(i.heridos || 0);
+      fallecidos += Number(i.fallecidos || 0);
+
+      if(i.estado){
+        estados[i.estado] = (estados[i.estado] || 0) + 1;
+      }
+
+      if(i.municipio){
+        municipios[i.municipio] = (municipios[i.municipio] || 0) + 1;
+      }
+
+    }
+
+  });
+
+  function obtenerMayor(obj){
+    return Object.entries(obj).sort((a,b)=>b[1]-a[1])[0]?.[0] || "-";
+  }
+
+  document.getElementById("total24h").textContent = total;
+  document.getElementById("heridos24h").textContent = heridos;
+  document.getElementById("fallecidos24h").textContent = fallecidos;
+
+  document.getElementById("estadoTop").textContent = obtenerMayor(estados);
+  document.getElementById("municipioTop").textContent = obtenerMayor(municipios);
+
+}
+
+// Llenar dropdown de estados
+function llenarEstados() {
+
+  const estados = [...new Set(
+    incidentesTodos
+      .map(i => i.estado?.trim())
+      .filter(e => e && e !== "")
+  )].sort();
+
+  const select = document.getElementById('filtroEstado');
+
+  select.innerHTML = '<option value="">Todos</option>';
+
+  estados.forEach(e => {
+    const option = document.createElement('option');
+    option.value = e;
+    option.textContent = e;
+    select.appendChild(option);
+  });
+
+  console.log("Estados detectados:", estados);
+}
+
+
+async function cargarActuales(){
+
+  const { data, error } = await supabaseClient
+  .from('reportes_accidentes')
+  .select('*');
+
+  if (error) {
+    console.error("Error cargando actuales:", error);
+    return;
+  }
+
+  if(data){
+
+    data.forEach(incidente => {
+
+      const lat = incidente.latitud;
+      const lon = incidente.lng;
+
+      if (lat && lon) {
+
+        // guardar en array global
+        incidentesTodos.push({
+          tipohecho: incidente.tipo_hecho,
+          latitud: incidente.latitud,
+          longitud: incidente.lng,
+          estado: incidente.estado,
+          municipio: incidente.municipio,
+          fecha: incidente.fecha,
+          hora: incidente.hora,
+          dictamen_no: incidente.dictamen_no,
+          instancia: incidente.instancia,
+          vehiculos: incidente.num_vehiculos,
+          heridos: incidente.heridos,
+          fallecidos: incidente.fallecidos,
+          causa: incidente.causa,
+          foto: incidente.foto_url,
+          tiempoReal: true
+        });
+
+        L.circleMarker(
+          [parseFloat(lat), parseFloat(lon)],
+          {
+            radius:6,
+            color:"#ffffff",
+            weight:1,
+            fillColor:"#e74c3c",
+            fillOpacity:0.9
+          }
+        )
+       .addTo(capaTiempoReal)
+.bindPopup(`
+<b>${incidente.tipo_hecho || 'SIN TIPO'}</b><br>
+📄 Dictamen: ${incidente.dictamen_no || 'N/D'}<br>
+📅 Fecha: ${incidente.fecha || 'N/D'}<br>
+🕒 Hora: ${incidente.hora || 'N/D'}<br>
+📍 ${incidente.estado || ''} - ${incidente.municipio || ''}<br>
+🚗 Vehículos: ${incidente.num_vehiculos ?? 0}<br>
+🤕 Heridos: ${incidente.heridos ?? 0}<br>
+⚰ Fallecidos: ${incidente.fallecidos ?? 0}
+${incidente.foto_url 
+  ? `<img src="${incidente.foto_url}" 
+           onclick="abrirImagen('${incidente.foto_url}')"
+           style="width:100%; max-width:250px; margin-top:8px; cursor:pointer;">`
+  : ""}
+`);
+      }
+    });
+
+    // ✅ SOLO UNA VEZ (fuera del forEach)
+    incidentesTodos = [
+      ...incidentesTodos.filter(i => i.tiempoReal),
+      ...incidentesTodos.filter(i => !i.tiempoReal)
+    ];
+
+    pintarFiltros(incidentesTodos);
+    mostrarEstadisticas(incidentesTodos);
+    llenarEstados();
+
+  } 
+
+}
+
+async function cargarIncidentes() {
+
+ const { data, error } = await supabaseClient
+.from('accidentes_historicos_limpios')
+.select('id, latitud, lng, tipo_hecho, estado');
+
+if (error) {
+  console.error('Error al obtener incidentes:', error.message);
+  return;
+}
+
+console.log("Datos históricos recibidos:", data);
+ 
+
+const datosConvertidos = data.map(i => ({
+  id: i.id,
+  latitud: i.latitud,
+  longitud: i.lng,
+  tipohecho: i.tipo_hecho,
+  estado: i.estado,
+  tiempoReal: false
+}));
+
+
+  console.log("Incidentes recibidos desde Supabase:", data);
+incidentesOriginales = datosConvertidos;
+
+
+// Actualizar array unificado
+incidentesTodos = [...incidentesOriginales]; // al inicio solo históricos
+mostrarEstadisticas(incidentesTodos);
+pintarIncidentes(datosConvertidos);  
+llenarEstados();       
+}
+
+function pintarIncidentes(datos){
+
+  capaIncidentes = capaHistoricos;
+
+  datos.forEach(incidente => {
+
+    const lat = parseFloat(incidente.latitud);
+    const lon = parseFloat(incidente.longitud);
+
+    if (!isNaN(lat) && !isNaN(lon)) {
+
+      const tipo = incidente.tipohecho?.toLowerCase().replace(/\s/g,'') || "otro";
+
+      const colores = {
+        atropellamiento: "#e74c3c",
+        choque: "#2980b9",
+        volcadura: "#8e44ad",
+        derrape: "#f39c12",
+        caidapasajero: "#27ae60",
+        otro: "#7f8c8d"
+      };
+
+      const color = colores[tipo] || colores.otro;
+
+      L.circleMarker([lat, lon], {
+        radius:5,
+        color:"#ffffff",
+        weight:1,
+        fillColor:color,
+        fillOpacity:0.8
+      })
+      .addTo(capaHistoricos)
+      .bindPopup(`<b>${incidente.tipohecho || 'SIN TIPO'}</b>`);
+
+    }
+
+  });
+
+}
+
+
+ // 🎯 Canal Realtime optimizado
+const canalRealtime = supabaseClient
+  .channel('realtime:reportes_accidentes')
+  .on(
+    'postgres_changes',
+    { event: 'INSERT', schema: 'public', table: 'reportes_accidentes' },
+    (payload) => {
+
+      console.log("🆕 Nuevo incidente recibido:", payload.new);
+
+      // ✅ PRIMERO declarar incidente
+      const incidente = payload.new;
+
+      // ✅ EVITAR DUPLICADOS
+      const existe = incidentesTodos.some(i =>
+        i.dictamen_no === incidente.dictamen_no &&
+        i.fecha === incidente.fecha &&
+        i.latitud == incidente.latitud
+      );
+
+      if (existe) return;
+
+      // ✅ GUARDAR EN ARRAY
+      incidentesTodos.push({
+        tipohecho: incidente.tipo_hecho,
+        latitud: incidente.latitud,
+        longitud: incidente.lng,
+        estado: incidente.estado,
+        fecha: incidente.fecha,
+        hora: incidente.hora,
+        dictamen_no: incidente.dictamen_no,
+        municipio: incidente.municipio,
+        vehiculos: incidente.num_vehiculos,
+        heridos: incidente.heridos,
+        fallecidos: incidente.fallecidos,
+        causa: incidente.causa,
+        foto: incidente.foto_url,
+        tiempoReal: true
+      });
+
+      // ✅ ACTUALIZAR UI
+      pintarFiltros(incidentesTodos);
+      mostrarEstadisticas(incidentesTodos);
+      llenarEstados();
+
+      // 🎨 COLOR POR TIPO
+      const tipo = incidente.tipo_hecho?.toLowerCase().replace(/\s/g,'') || "otro";
+
+      const colores = {
+        atropellamiento: { color: "#e74c3c", fillColor: "#f1948a" },
+        choque: { color: "#2980b9", fillColor: "#85c1e9" },
+        volcadura: { color: "#8e44ad", fillColor: "#d2b4de" },
+        derrape: { color: "#f39c12", fillColor: "#f9e79f" },
+        caidapasajero: { color: "#27ae60", fillColor: "#a9dfbf" },
+        otro: { color: "#7f8c8d", fillColor: "#d5d8dc" }
+      };
+
+      const estilo = colores[tipo] || colores.otro;
+
+      const lat = incidente.latitud;
+      const lon = incidente.lng;
+
+      // 📍 PINTAR EN MAPA
+      if (lat && lon) {
+
+        L.circleMarker(
+          [parseFloat(lat), parseFloat(lon)],
+          {
+            radius: 6,
+            color: estilo.color,
+            fillColor: estilo.fillColor,
+            fillOpacity: 0.9
+          }
+        )
+        .addTo(capaTiempoReal)
+        .bindPopup(`
+<b>${incidente.tipo_hecho || 'SIN TIPO'}</b><br>
+📄 Dictamen: ${incidente.dictamen_no || 'N/D'}<br>
+📅 Fecha: ${incidente.fecha || 'N/D'}<br>
+🕒 Hora: ${incidente.hora || 'N/D'}<br>
+📍 ${incidente.estado || ''} - ${incidente.municipio || ''}<br>
+🚗 Vehículos: ${incidente.num_vehiculos ?? 0}<br>
+🤕 Heridos: ${incidente.heridos ?? 0}<br>
+⚰ Fallecidos: ${incidente.fallecidos ?? 0}
+${incidente.foto_url 
+  ? `<img src="${incidente.foto_url}" 
+           onclick="abrirImagen('${incidente.foto_url}')"
+           style="width:100%; max-width:250px; margin-top:8px; cursor:pointer;">`
+  : ""}
+        `);
+
+        console.log("📍 Incidente pintado en el mapa:", incidente);
+      }
+
+    }
+  )
+  .subscribe((status) => {
+    console.log("📡 Estado del canal realtime:", status);
+  });
+
+
+// 🔹 Variables globales para las gráficas
+let chartIncidentes;
+let chartEstados;
+
+// 1. Función para unificar nombres de incidentes (Crucial para que todo coincida)
+function normalizarTipo(tipo) {
+    let t = tipo?.toLowerCase() || "otro";
+    if (t.includes("atrop")) return "atropellamiento";
+    if (t.includes("choque")) return "choque";
+    if (t.includes("volc")) return "volcadura";
+    if (t.includes("derrape")) return "derrape";
+    if (t.includes("caida")) return "caidapasajero";
+    return "otro";
+    
+}
+
+// 2. Función Principal de Estadísticas
+function mostrarEstadisticas(data) {
+    if (!data || data.length === 0) {
+        console.warn("No hay datos para estadísticas");
+        return;
+    }
+
+    // --- CONTEO POR TIPO ---
+    const conteoTipos = {
+        atropellamiento: 0, choque: 0, volcadura: 0,
+        derrape: 0, caidapasajero: 0, otro: 0
+    };
+
+    data.forEach(i => {
+        const tipo = normalizarTipo(i.tipohecho || i.tipo_hecho);
+        if (conteoTipos[tipo] !== undefined) conteoTipos[tipo]++;
+        else conteoTipos.otro++;
+    });
+
+    // --- RENDERIZAR GRÁFICO DE BARRAS (TIPOS) ---
+    const ctxTipos = document.getElementById('graficoIncidentes').getContext('2d');
+    if (chartIncidentes) chartIncidentes.destroy();
+
+    chartIncidentes = new Chart(ctxTipos, {
+        type: 'bar',
+        data: {
+            labels: ['Atropellamiento', 'Choque', 'Volcadura', 'Derrape', 'Caída Pasajero', 'Otro'],
+            datasets: [{
+                label: 'Cantidad de incidentes',
+                data: Object.values(conteoTipos),
+                backgroundColor: ['#e74c3c', '#2980b9', '#8e44ad', '#f39c12', '#27ae60', '#7f8c8d'],
+                borderRadius: 6,
+                barThickness: 18
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => {
+                            const total = data.length;
+                            const count = ctx.parsed.x;
+                            const pct = ((count / total) * 100).toFixed(1);
+                            return `${count} incidentes (${pct}%)`;
+                        }
+                    },
+                    titleColor: "#611232",
+                    bodyColor: "#611232",
+                    backgroundColor: "#f5e6b3"
+                }
+            },
+            onClick: (evt, elements) => {
+                if (elements.length > 0) {
+                    const idx = elements[0].index;
+                    const labelsMap = ['atropellamiento', 'choque', 'volcadura', 'derrape', 'caidapasajero', 'otro'];
+                    filtrarIncidentes(labelsMap[idx]);
+                }
+            },
+            scales: {
+                x: { beginAtZero: true, ticks: { color: "#f5e6b3" }, grid: { color: "rgba(255,255,255,0.15)" } },
+                y: { ticks: { color: "#f5e6b3" }, grid: { display: false } }
+            }
+        }
+    });
+
+    // 3. Llamar a la actualización del gráfico de Estados
+    actualizarGraficoEstados(data);
+}
+
+// 4. Función para el gráfico de Estados (Dona)
+function actualizarGraficoEstados(data) {
+    const conteoEdos = {};
+    data.forEach(i => {
+        const edo = i.estado?.trim() || "No especificado";
+        conteoEdos[edo] = (conteoEdos[edo] || 0) + 1;
+    });
+
+    const topEstados = Object.entries(conteoEdos)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+    const ctxEdos = document.getElementById('graficoEstados').getContext('2d');
+    if (chartEstados) chartEstados.destroy();
+
+    chartEstados = new Chart(ctxEdos, {
+        type: 'doughnut',
+        data: {
+            labels: topEstados.map(e => e[0]),
+            datasets: [{
+                data: topEstados.map(e => e[1]),
+                backgroundColor: ['#a57f2c', '#611232', '#8e44ad', '#2980b9', '#27ae60'],
+                borderWidth: 1,
+                borderColor: '#611232'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#f5e6b3', font: { size: 10 } }
+                }
+            }
+        }
+    });
+}
+
+// 5. Filtros de Incidentes
+function filtrarIncidentes(tipo) {
+    capaHistoricos.clearLayers();
+    capaTiempoReal.clearLayers();
+
+    let filtrados = (tipo === null)
+        ? incidentesTodos
+        : incidentesTodos.filter(i => normalizarTipo(i.tipohecho || i.tipo_hecho) === tipo);
+
+    pintarFiltros(filtrados);
+    mostrarEstadisticas(filtrados);
+}
+
+// 6. Filtros por Tiempo
+function filtrarTiempo(horas) {
+    capaHistoricos.clearLayers();
+    capaTiempoReal.clearLayers();
+
+    if (!horas) {
+        pintarFiltros(incidentesTodos);
+        mostrarEstadisticas(incidentesTodos);
+        return;
+    }
+
+    const ahora = new Date();
+   const filtrados = incidentesTodos.filter(i => {
+
+  if (!horas) return true;
+
+  if (!i.tiempoReal) return true;
+
+  const fechaIncidente = new Date(i.fecha + "T" + (i.hora || "00:00"));
+
+  if (isNaN(fechaIncidente)) return false;
+
+  const diferenciaHoras = (ahora - fechaIncidente) / (1000 * 60 * 60);
+
+  return diferenciaHoras <= horas;
+});
+
+    pintarFiltros(filtrados);
+    mostrarEstadisticas(filtrados);
+}
+
+// 🔹 Hexgrid
+let tipoHexgridActivo = null;
+let capaHexgrid;
+let contornoMexico;
+let hexActivo = false;
+
+// 🔹 Cargar contorno simplificado de México
+fetch('https://raw.githubusercontent.com/EddBanda/contornomexico/refs/heads/main/contornosimp2.geojson')
+  .then(res => res.json())
+  .then(data => {
+    contornoMexico = data;
+    console.log("🗺️ Contorno de México cargado:", contornoMexico);
+  });
+
+// 🔹 Función que genera el hexgrid en base a incidentes cargados
+function generarHexgrid() {
+  if (!incidentesOriginales || incidentesOriginales.length === 0) {
+    alert("⚠️ No hay datos cargados para analizar.");
+    return;
+  }
+
+  if (!contornoMexico || !contornoMexico.features || contornoMexico.features.length === 0) {
+    alert("⚠️ El contorno de México aún no ha sido cargado.");
+    return;
+  }
+
+  if (capaHexgrid) {
+    map.removeLayer(capaHexgrid);
+  }
+
+  const puntosFiltrados = incidentesOriginales.filter(p => {
+    const tipo = p.tipohecho?.toLowerCase().replace(/\s/g, '') || "otro";
+    return tipoHexgridActivo === null || tipo === tipoHexgridActivo;
+  });
+
+  const puntos = puntosFiltrados
+    .filter(p => p.latitud && p.longitud)
+    .map(p => turf.point([parseFloat(p.longitud), parseFloat(p.latitud)]));
+
+  console.log("🔍 Total puntos válidos:", puntos.length);
+
+  const featureCollection = turf.featureCollection(puntos);
+
+  const mexicoPoligono = contornoMexico.features[0];
+  const bbox = turf.bbox(mexicoPoligono);
+
+  // 🔹 Ajusta aquí el tamaño del hexágono (en km)
+  const hexgrid = turf.hexGrid(bbox, 25, { units: 'kilometers' }); // Cambia a 5 si quieres más detalle
+
+  const hexRecortado = {
+    type: "FeatureCollection",
+    features: hexgrid.features
+      .map(h => turf.intersect(h, mexicoPoligono))
+      .filter(f => f)
+  };
+
+  const hexCount = turf.collect(hexRecortado, featureCollection, 'dummy', 'puntos');
+  hexCount.features.forEach(f => {
+    f.properties.count = f.properties.puntos ? f.properties.puntos.length : 0;
+  });
+
+  capaHexgrid = L.geoJSON(hexCount, {
+    style: feature => {
+      const n = feature.properties.count || 0;
+      return {
+        color: '#000',
+        weight: 0.3,
+        fillOpacity: 0.85,
+        fillColor: n > 10 ? '#800026' :
+                   n > 5  ? '#BD0026' :
+                   n > 2  ? '#E31A1C' :
+                   n > 0  ? '#FC4E2A' : 'transparent'
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const n = feature.properties.count;
+      if (n > 0) {
+        layer.bindPopup(`
+          <div style="font-family: Noto Sans; font-size: 13px;">
+            🔷 Accidentes en esta celda:<br><strong style="font-size: 16px;">${n}</strong>
+          </div>
+        `);
+      }
+    }
+  });
+
+  capaHexgrid.addTo(map);
+}
+
+// 🔹 Alternar el hexgrid al hacer clic en el botón
+function toggleHexgrid() {
+
+  const btn = document.getElementById("btnHexgrid");
+
+  if (hexActivo) {
+
+    if (capaHexgrid) map.removeLayer(capaHexgrid);
+
+    btn.innerText = "🔷 Activar Análisis Hexagonal";
+    hexActivo = false;
+
+  } else {
+
+    generarHexgrid();
+
+    btn.innerText = "❌ Desactivar Hexgrid";
+    hexActivo = true;
+
+  }
+
+}
+
+
+// 🔹 Función para definir estilo dinámico de la red vial según el mapa base
+function estiloRedVialPorBase(baseLayer) {
+  const isDark = baseLayer === darkMatter; // Detectar si es fondo oscuro
+
+  return function (feature) {
+    const esPeaje = feature.properties.PEAJE?.toLowerCase() === 'sí';
+    return {
+      color: esPeaje
+        ? (isDark ? '#e74c3c' : '#b91c1c') // 🔴 rojo peaje
+        : (isDark ? '#27ae60' : '#065f46'), // 🟢 verde libre
+      weight: 2,
+      opacity: 0.9
+    };
+  };
+}
+
+// 🔹 Cargar la Red Vial Federal
+fetch('https://raw.githubusercontent.com/EddBanda/geojsonsict/main/Red%20de%20Caminos.geojson')
+  .then(res => res.json())
+  .then(data => {
+    console.log("🛣️ Red vial cargada:", data);
+
+    let capaRedVial;
+    capaRedVial = L.geoJSON(data, {
+      style: estiloRedVialPorBase(darkMatter), // estilo inicial con darkMatter
+      onEachFeature: function (feature, layer) {
+        const props = feature.properties;
+        const popupContent = `
+          <div style='font-family: Noto Sans; font-size: 13px; max-width: 280px;'>
+            <strong>Tramo:</strong> ${props.NOMBRE || 'Sin dato'}<br>
+            <strong>Tipo:</strong> ${props.TIPO_VIAL || 'Sin dato'}<br>
+            <strong>Peaje:</strong> ${props.PEAJE || 'N/A'}<br>
+            <strong>Condición:</strong> ${props.CONDICION || 'N/A'}<br>
+            <strong>Velocidad:</strong> ${props.VELOCIDAD || 'N/A'} km/h
+          </div>`;
+        layer.bindPopup(popupContent);
+      }
+    }).addTo(map);
+  });
+
+// 🔄 Actualizar estilo cuando se cambia el mapa base
+map.on('baselayerchange', function (e) {
+  if (capaRedVial) {
+    capaRedVial.setStyle(estiloRedVialPorBase(e.layer));
+  }
+});
+
+
+
+async function iniciarMapa(){
+
+  await cargarIncidentes();
+  await cargarActuales();
+
+  pintarFiltros(incidentesTodos);
+
+  llenarEstados();
+  mostrarEstadisticas(incidentesTodos);
+
+}
+
+iniciarMapa();
+
+const toggleResumen = document.getElementById("toggleResumen");
+const contenidoResumen = document.getElementById("contenidoResumen");
+
+toggleResumen.addEventListener("click", () => {
+
+contenidoResumen.classList.toggle("mostrar");
+
+if(contenidoResumen.classList.contains("mostrar")){
+    toggleResumen.innerHTML = "Resumen últimas 24 h ▾";
+}else{
+    toggleResumen.innerHTML = "Resumen últimas 24 h ▸";
+}
+
+});
+
+
+// BOTÓN DEL SIDEBAR
+const toggleSidebarBtn = document.getElementById("toggleSidebar");
+const sidebar = document.getElementById("sidebar");
+
+toggleSidebarBtn.addEventListener("click", () => {
+
+  sidebar.classList.toggle("activo");
+
+  if(sidebar.classList.contains("activo")){
+    toggleSidebarBtn.style.top = "70px";
+  }else{
+    toggleSidebarBtn.style.top = "10px";
+  }
+
+});
+const visor = document.getElementById("visorImagen");
+const imgGrande = document.getElementById("imagenGrande");
+const cerrarVisor = document.getElementById("cerrarVisor");
+
+let zoom = 1;
+
+// Abrir visor
+function abrirImagen(src){
+  imgGrande.src = src;
+  visor.classList.remove("oculto");
+
+  zoom = 1;
+  imgGrande.style.transform = "scale(1)";
+}
+
+// 🔥 ZOOM (VA SOLO, NO DENTRO DE OTRO EVENTO)
+imgGrande.addEventListener("click", (e) => {
+  e.stopPropagation();
+
+  zoom = zoom === 1 ? 2 : 1;
+
+  imgGrande.style.transform = `scale(${zoom})`;
+});
+
+// Cerrar visor
+cerrarVisor.addEventListener("click", () => {
+  visor.classList.add("oculto");
+});
+
+// Cerrar tocando fondo
+visor.addEventListener("click", (e) => {
+  if(e.target === visor){
+    visor.classList.add("oculto");
+    zoom = 1;
+  }
+});
+
+</script>
+
+</body>
+
+</html>
