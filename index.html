@@ -40,7 +40,6 @@
   padding: 0; /* Quitamos padding aquí para que la barra pegue al borde */
   z-index: 1001;
   font-family: 'Noto Sans', sans-serif;
-  transition: transform 0.3s ease;
   box-shadow: 2px 0 10px rgba(0,0,0,0.4);
 }
 
@@ -252,6 +251,39 @@ canvas#graficoEstados {
 
 .leaflet-control-layers label {
   color: #f5e6b3;
+}
+.visor.oculto {
+  display: none;
+}
+.visor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.9);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  z-index: 99999;
+}
+#imagenGrande {
+  max-width: 90%;
+  max-height: 90%;
+  transition: transform 0.3s ease;
+  cursor: zoom-in;
+}
+
+#cerrarVisor {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  font-size: 30px;
+  color: white;
+  cursor: pointer;
+  z-index: 100000;
 }
 
 /* Ajustes menores para pantallas muy pequeñas (≤480px) */
@@ -524,7 +556,10 @@ canvas#graficoEstados {
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
- 
+ <div id="visorImagen" class="visor oculto">
+  <span id="cerrarVisor">✕</span>
+  <img id="imagenGrande" src="" />
+</div>
 <script>
 
 
@@ -676,7 +711,13 @@ function pintarFiltros(datos) {
 
       const capaDestino = incidente.tiempoReal ? capaTiempoReal : capaHistoricos;
 
-      const popupContenido = `
+const imagenHTML = incidente.foto
+  ? `<img src="${incidente.foto}" 
+          onclick="abrirImagen('${incidente.foto}')"
+          style="width:100%; max-width:250px; margin-top:8px; border-radius:6px; cursor:pointer;" />`
+  : "";
+
+const popupContenido = `
 <b>${incidente.tipohecho || 'SIN TIPO'}</b><br>
 📄 Dictamen: ${incidente.dictamen_no || 'N/D'}<br>
 📅 Fecha: ${incidente.fecha || 'N/D'}<br>
@@ -687,6 +728,7 @@ function pintarFiltros(datos) {
 🤕 Heridos: ${incidente.heridos ?? 0}<br>
 ⚰ Fallecidos: ${incidente.fallecidos ?? 0}<br>
 ❗ Posible causa: ${incidente.causa || 'N/D'}
+${imagenHTML}
 `;
 
       L.circleMarker([lat, lon], {
@@ -802,22 +844,23 @@ async function cargarActuales(){
       if (lat && lon) {
 
         // guardar en array global
-incidentesTodos.push({
-  tipohecho: incidente.tipo_hecho,
-  latitud: incidente.latitud,
-  longitud: incidente.lng,
-  estado: incidente.estado,
-  municipio: incidente.municipio,
-  fecha: incidente.fecha,
-  hora: incidente.hora,
-  dictamen_no: incidente.dictamen_no,
-  instancia: incidente.instancia,
-  vehiculos: incidente.num_vehiculos,
-  heridos: incidente.heridos,
-  fallecidos: incidente.fallecidos,
-  causa: incidente.causa,
-  tiempoReal: true
-});
+        incidentesTodos.push({
+          tipohecho: incidente.tipo_hecho,
+          latitud: incidente.latitud,
+          longitud: incidente.lng,
+          estado: incidente.estado,
+          municipio: incidente.municipio,
+          fecha: incidente.fecha,
+          hora: incidente.hora,
+          dictamen_no: incidente.dictamen_no,
+          instancia: incidente.instancia,
+          vehiculos: incidente.num_vehiculos,
+          heridos: incidente.heridos,
+          fallecidos: incidente.fallecidos,
+          causa: incidente.causa,
+          foto: incidente.foto_url,
+          tiempoReal: true
+        });
 
         L.circleMarker(
           [parseFloat(lat), parseFloat(lon)],
@@ -829,8 +872,8 @@ incidentesTodos.push({
             fillOpacity:0.9
           }
         )
-        .addTo(capaTiempoReal)
-        .bindPopup(`
+       .addTo(capaTiempoReal)
+.bindPopup(`
 <b>${incidente.tipo_hecho || 'SIN TIPO'}</b><br>
 📄 Dictamen: ${incidente.dictamen_no || 'N/D'}<br>
 📅 Fecha: ${incidente.fecha || 'N/D'}<br>
@@ -839,29 +882,30 @@ incidentesTodos.push({
 🚗 Vehículos: ${incidente.num_vehiculos ?? 0}<br>
 🤕 Heridos: ${incidente.heridos ?? 0}<br>
 ⚰ Fallecidos: ${incidente.fallecidos ?? 0}
+${incidente.foto_url 
+  ? `<img src="${incidente.foto_url}" 
+           onclick="abrirImagen('${incidente.foto_url}')"
+           style="width:100%; max-width:250px; margin-top:8px; cursor:pointer;">`
+  : ""}
 `);
-// Unificar y reordenar: primero tiempo real
-incidentesTodos = [
-  ...incidentesTodos.filter(i => i.tiempoReal),
-  ...incidentesTodos.filter(i => !i.tiempoReal)
-];
-
-pintarFiltros(incidentesTodos);
-mostrarEstadisticas(incidentesTodos);
-llenarEstados();
       }
-
     });
 
-  }
+    // ✅ SOLO UNA VEZ (fuera del forEach)
+    incidentesTodos = [
+      ...incidentesTodos.filter(i => i.tiempoReal),
+      ...incidentesTodos.filter(i => !i.tiempoReal)
+    ];
 
-  // 🔹 ACTUALIZAR DROPDOWN Y GRÁFICA
-  llenarEstados();
-  mostrarEstadisticas(incidentesTodos);
+    pintarFiltros(incidentesTodos);
+    mostrarEstadisticas(incidentesTodos);
+    llenarEstados();
+
+  } 
 
 }
 
-   async function cargarIncidentes() {
+async function cargarIncidentes() {
 
  const { data, error } = await supabaseClient
 .from('accidentes_historicos_limpios')
@@ -944,20 +988,46 @@ const canalRealtime = supabaseClient
     'postgres_changes',
     { event: 'INSERT', schema: 'public', table: 'reportes_accidentes' },
     (payload) => {
+
       console.log("🆕 Nuevo incidente recibido:", payload.new);
 
+      // ✅ PRIMERO declarar incidente
       const incidente = payload.new;
-incidentesTodos.push({
-  tipohecho: incidente.tipo_hecho,
-  latitud: incidente.latitud,
-  longitud: incidente.lng,
-  estado: incidente.estado,
-  fecha: incidente.fecha,
-  tiempoReal: true
-});
-mostrarEstadisticas(incidentesTodos);
-llenarEstados();
-   const tipo = incidente.tipo_hecho?.toLowerCase().replace(/\s/g,'') || "otro";
+
+      // ✅ EVITAR DUPLICADOS
+      const existe = incidentesTodos.some(i =>
+        i.dictamen_no === incidente.dictamen_no &&
+        i.fecha === incidente.fecha &&
+        i.latitud == incidente.latitud
+      );
+
+      if (existe) return;
+
+      // ✅ GUARDAR EN ARRAY
+      incidentesTodos.push({
+        tipohecho: incidente.tipo_hecho,
+        latitud: incidente.latitud,
+        longitud: incidente.lng,
+        estado: incidente.estado,
+        fecha: incidente.fecha,
+        hora: incidente.hora,
+        dictamen_no: incidente.dictamen_no,
+        municipio: incidente.municipio,
+        vehiculos: incidente.num_vehiculos,
+        heridos: incidente.heridos,
+        fallecidos: incidente.fallecidos,
+        causa: incidente.causa,
+        foto: incidente.foto_url,
+        tiempoReal: true
+      });
+
+      // ✅ ACTUALIZAR UI
+      pintarFiltros(incidentesTodos);
+      mostrarEstadisticas(incidentesTodos);
+      llenarEstados();
+
+      // 🎨 COLOR POR TIPO
+      const tipo = incidente.tipo_hecho?.toLowerCase().replace(/\s/g,'') || "otro";
 
       const colores = {
         atropellamiento: { color: "#e74c3c", fillColor: "#f1948a" },
@@ -969,22 +1039,24 @@ llenarEstados();
       };
 
       const estilo = colores[tipo] || colores.otro;
-const lat = incidente.latitud;
-const lon = incidente.lng;
 
-if (lat && lon) {
+      const lat = incidente.latitud;
+      const lon = incidente.lng;
 
-const marker = L.circleMarker(
-  [parseFloat(lat), parseFloat(lon)],
-  {
-    radius:6,
-    color: estilo.color,
-    fillColor: estilo.fillColor,
-    fillOpacity:0.9
-  }
-)
-.addTo(capaTiempoReal)
-.bindPopup(`
+      // 📍 PINTAR EN MAPA
+      if (lat && lon) {
+
+        L.circleMarker(
+          [parseFloat(lat), parseFloat(lon)],
+          {
+            radius: 6,
+            color: estilo.color,
+            fillColor: estilo.fillColor,
+            fillOpacity: 0.9
+          }
+        )
+        .addTo(capaTiempoReal)
+        .bindPopup(`
 <b>${incidente.tipo_hecho || 'SIN TIPO'}</b><br>
 📄 Dictamen: ${incidente.dictamen_no || 'N/D'}<br>
 📅 Fecha: ${incidente.fecha || 'N/D'}<br>
@@ -993,17 +1065,21 @@ const marker = L.circleMarker(
 🚗 Vehículos: ${incidente.num_vehiculos ?? 0}<br>
 🤕 Heridos: ${incidente.heridos ?? 0}<br>
 ⚰ Fallecidos: ${incidente.fallecidos ?? 0}
-`);
-;
+${incidente.foto_url 
+  ? `<img src="${incidente.foto_url}" 
+           onclick="abrirImagen('${incidente.foto_url}')"
+           style="width:100%; max-width:250px; margin-top:8px; cursor:pointer;">`
+  : ""}
+        `);
 
         console.log("📍 Incidente pintado en el mapa:", incidente);
       }
+
     }
   )
   .subscribe((status) => {
     console.log("📡 Estado del canal realtime:", status);
   });
-
 
 
 // 🔹 Variables globales para las gráficas
@@ -1019,6 +1095,7 @@ function normalizarTipo(tipo) {
     if (t.includes("derrape")) return "derrape";
     if (t.includes("caida")) return "caidapasajero";
     return "otro";
+    
 }
 
 // 2. Función Principal de Estadísticas
@@ -1310,6 +1387,7 @@ fetch('https://raw.githubusercontent.com/EddBanda/geojsonsict/main/Red%20de%20Ca
   .then(data => {
     console.log("🛣️ Red vial cargada:", data);
 
+    let capaRedVial;
     capaRedVial = L.geoJSON(data, {
       style: estiloRedVialPorBase(darkMatter), // estilo inicial con darkMatter
       onEachFeature: function (feature, layer) {
@@ -1358,10 +1436,10 @@ toggleResumen.addEventListener("click", () => {
 contenidoResumen.classList.toggle("mostrar");
 
 if(contenidoResumen.classList.contains("mostrar")){
-    toggleResumen.innerHTML = "Resumen últimas 24 h ▸";
-  }else{
     toggleResumen.innerHTML = "Resumen últimas 24 h ▾";
-  }
+}else{
+    toggleResumen.innerHTML = "Resumen últimas 24 h ▸";
+}
 
 });
 
@@ -1381,6 +1459,43 @@ toggleSidebarBtn.addEventListener("click", () => {
   }
 
 });
+const visor = document.getElementById("visorImagen");
+const imgGrande = document.getElementById("imagenGrande");
+const cerrarVisor = document.getElementById("cerrarVisor");
+
+let zoom = 1;
+
+// Abrir visor
+function abrirImagen(src){
+  imgGrande.src = src;
+  visor.classList.remove("oculto");
+
+  zoom = 1;
+  imgGrande.style.transform = "scale(1)";
+}
+
+// 🔥 ZOOM (VA SOLO, NO DENTRO DE OTRO EVENTO)
+imgGrande.addEventListener("click", (e) => {
+  e.stopPropagation();
+
+  zoom = zoom === 1 ? 2 : 1;
+
+  imgGrande.style.transform = `scale(${zoom})`;
+});
+
+// Cerrar visor
+cerrarVisor.addEventListener("click", () => {
+  visor.classList.add("oculto");
+});
+
+// Cerrar tocando fondo
+visor.addEventListener("click", (e) => {
+  if(e.target === visor){
+    visor.classList.add("oculto");
+    zoom = 1;
+  }
+});
+
 </script>
 
 </body>
