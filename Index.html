@@ -26,7 +26,7 @@
   box-shadow: 2px 0 10px rgba(0,0,0,0.4);
 }
 
-/* 1. CONFIGURACIÓN DEL SIDEBAR */
+
 #sidebar {
   position: absolute;
   top: 0;
@@ -43,12 +43,12 @@
   box-shadow: 2px 0 10px rgba(0,0,0,0.4);
 }
 
-/* Clase para ocultar (si la usas con JS) */
+
 #sidebar.oculto {
   transform: translateX(-260px);
 }
 
-/* 2. ENCABEZADO (Fijo arriba) */
+
 .sidebar-header {
   text-align: center;
   padding: 20px 15px 10px 15px; /* Espacio para que el botón respire */
@@ -72,17 +72,15 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 1);
 }
 
-/* 3. CONTENEDOR DE CONTENIDO (Aquí es donde ocurre el Scroll) */
 .sidebar-content {
-  flex-grow: 1;      /* Ocupa el resto del panel */
-  overflow-y: auto;  /* ACTIVA LA BARRA DE DESPLAZAMIENTO */
+  flex-grow: 1;
+  overflow-y: auto;
   overflow-x: hidden;
-  padding: 0 20px 20px 20px; /* Padding interno para que nada toque los bordes */
+  padding: 0 20px 20px 20px;
   scrollbar-width: thin;
   scrollbar-color: #a57f2c rgba(0, 0, 0, 0.1);
 }
 
-/* 4. ESTILO DE LA BARRA (Scrollbar personalizada) */
 .sidebar-content::-webkit-scrollbar {
   width: 6px; /* Barra delgada */
 }
@@ -134,17 +132,16 @@
   flex-shrink: 0;
 }
 
-/* Mapa ocupa todo el espacio restante */
+
 #map {
   position: absolute;
   top: 0;
-  left: 0; /* Inicia desde el borde izquierdo */
-  width: 100%; /* Ocupa todo el ancho */
+  left: 0; 
+  width: 100%; 
   height: 100vh;
   transition: left 0.3s ease, width 0.3s ease;
 }
 
-/* Cuando el sidebar esté activo, el mapa se empuja (opcional) */
 #sidebar.activo + #map {
   left: 260px;
   width: calc(100% - 260px);
@@ -161,7 +158,7 @@
   }
 }
 
-/* Logo fijo en esquina */
+
 #logo-container {
   position: fixed;
   bottom: 20px;
@@ -179,9 +176,7 @@
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
 }
 
-/* Botones de filtro */
-/* Contenedores para acomodar botones en 2 columnas */
-/* Contenedores en cuadrícula (2 columnas) */
+
 #filtros-tipo, #filtros-tiempo {
   display: grid;
   grid-template-columns: repeat(2, 1fr); /* Crea dos columnas iguales */
@@ -189,7 +184,7 @@
   margin-top: 12px;
 }
 
-/* Tu estilo de botón con fondo blanco */
+
 .btnFiltro {
   font-family: 'Noto Sans', sans-serif;
   font-size: 11px;
@@ -218,13 +213,13 @@
   flex-shrink: 0;
 }
 
-/* Botón "Mostrar todos" extendido */
+/* Botón "Mostrar todos" */
 .btn-full {
-  grid-column: span 2; /* Ocupa las dos columnas */
+  grid-column: span 2; 
   justify-content: center;
 }
 
-/* Ajuste específico para el dropdown de Estados para que combine */
+
 #filtroEstado {
   background: #611232;
   color: #f5e6b3;
@@ -234,14 +229,13 @@
   font-family: 'Noto Sans', sans-serif;
 }
 
-/* Gráficos adaptativos */
+
 canvas#graficoIncidentes,
 canvas#graficoEstados {
   width: 100% !important;
   height: auto !important;
 }
 
-/* Leaflet controls */
 .leaflet-control-layers {
   font-size: 14px;
   background: #611232;
@@ -286,7 +280,6 @@ canvas#graficoEstados {
   z-index: 100000;
 }
 
-/* Ajustes menores para pantallas muy pequeñas (≤480px) */
 @media (max-width: 480px) {
 
   #sidebar {
@@ -314,7 +307,6 @@ canvas#graficoEstados {
 
 }
 
-/* Sidebar deslizante para móviles */
 #sidebar {
   transition: left 0.3s ease;
 }
@@ -323,7 +315,6 @@ canvas#graficoEstados {
   left: 0 !important;
 }
 
-/* Inicialmente oculto en móviles */
 @media (max-width: 768px) {
   #sidebar {
     left: -260px;
@@ -549,7 +540,6 @@ canvas#graficoEstados {
 </div> <!-- sidebar -->
 
 
-
 <!-- SCRIPT TURF -->
   <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>	
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
@@ -659,10 +649,13 @@ map.on('overlayremove', function(e) {
     const supabaseKey = 'sb_publishable_4EZ3TWp81gUYerPR9aNgJg_we2oIqAc'; 
     const { createClient } = supabase;
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
-
+function capitalizar(texto) {
+  if (!texto) return "";
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
 let incidentesOriginales = [];
 let capaIncidentes = null;
-let incidentesTodos = []; // 🚨 Nuevo array que unifica históricos + actuales
+let incidentesTodos = []; 
 
 // Filtrar por estado
 function filtrarPorEstado(estado) {
@@ -684,7 +677,7 @@ function pintarFiltros(datos) {
   capaHistoricos.clearLayers();
   capaTiempoReal.clearLayers();
 
-  // 🔹 Separar y unir arrays: primero tiempo real, luego históricos
+  // Separar y unir arrays: primero tiempo real, luego históricos
   const tiempoReal = datos.filter(d => !!d.tiempoReal);
   const historicos = datos.filter(d => !d.tiempoReal);
   const datosOrdenados = [...tiempoReal, ...historicos];
@@ -718,7 +711,7 @@ const imagenHTML = incidente.foto
   : "";
 
 const popupContenido = `
-<b>${incidente.tipohecho || 'SIN TIPO'}</b><br>
+<b>${capitalizar(incidente.tipohecho) || 'SIN TIPO'}</b><br>
 📄 Dictamen: ${incidente.dictamen_no || 'N/D'}<br>
 📅 Fecha: ${incidente.fecha || 'N/D'}<br>
 🕒 Hora: ${incidente.hora || 'N/D'}<br>
@@ -745,7 +738,6 @@ ${imagenHTML}
 
   });
 
-  // 🔹 ACTUALIZA LA TARJETA DE RESUMEN
   actualizarResumen24h(datos);
 
 }
@@ -874,7 +866,7 @@ async function cargarActuales(){
         )
        .addTo(capaTiempoReal)
 .bindPopup(`
-<b>${incidente.tipo_hecho || 'SIN TIPO'}</b><br>
+<b>${capitalizar(incidente.tipo_hecho) || 'SIN TIPO'}</b><br>
 📄 Dictamen: ${incidente.dictamen_no || 'N/D'}<br>
 📅 Fecha: ${incidente.fecha || 'N/D'}<br>
 🕒 Hora: ${incidente.hora || 'N/D'}<br>
@@ -891,7 +883,7 @@ ${incidente.foto_url
       }
     });
 
-    // ✅ SOLO UNA VEZ (fuera del forEach)
+  
     incidentesTodos = [
       ...incidentesTodos.filter(i => i.tiempoReal),
       ...incidentesTodos.filter(i => !i.tiempoReal)
@@ -934,7 +926,7 @@ incidentesOriginales = datosConvertidos;
 
 
 // Actualizar array unificado
-incidentesTodos = [...incidentesOriginales]; // al inicio solo históricos
+incidentesTodos = [...incidentesOriginales]; 
 mostrarEstadisticas(incidentesTodos);
 pintarIncidentes(datosConvertidos);  
 llenarEstados();       
@@ -972,7 +964,7 @@ function pintarIncidentes(datos){
         fillOpacity:0.8
       })
       .addTo(capaHistoricos)
-      .bindPopup(`<b>${incidente.tipohecho || 'SIN TIPO'}</b>`);
+      .bindPopup(`<b>${capitalizar(incidente.tipohecho) || 'SIN TIPO'}</b>`);
 
     }
 
@@ -980,8 +972,6 @@ function pintarIncidentes(datos){
 
 }
 
-
- // 🎯 Canal Realtime optimizado
 const canalRealtime = supabaseClient
   .channel('realtime:reportes_accidentes')
   .on(
@@ -991,10 +981,9 @@ const canalRealtime = supabaseClient
 
       console.log("🆕 Nuevo incidente recibido:", payload.new);
 
-      // ✅ PRIMERO declarar incidente
       const incidente = payload.new;
 
-      // ✅ EVITAR DUPLICADOS
+      //  EVITAR DUPLICADOS
       const existe = incidentesTodos.some(i =>
         i.dictamen_no === incidente.dictamen_no &&
         i.fecha === incidente.fecha &&
@@ -1026,7 +1015,7 @@ const canalRealtime = supabaseClient
       mostrarEstadisticas(incidentesTodos);
       llenarEstados();
 
-      // 🎨 COLOR POR TIPO
+      // COLOR POR TIPO
       const tipo = incidente.tipo_hecho?.toLowerCase().replace(/\s/g,'') || "otro";
 
       const colores = {
@@ -1057,7 +1046,7 @@ const canalRealtime = supabaseClient
         )
         .addTo(capaTiempoReal)
         .bindPopup(`
-<b>${incidente.tipo_hecho || 'SIN TIPO'}</b><br>
+<b>${capitalizar(incidente.tipo_hecho) || 'SIN TIPO'}</b><br>
 📄 Dictamen: ${incidente.dictamen_no || 'N/D'}<br>
 📅 Fecha: ${incidente.fecha || 'N/D'}<br>
 🕒 Hora: ${incidente.hora || 'N/D'}<br>
@@ -1082,11 +1071,11 @@ ${incidente.foto_url
   });
 
 
-// 🔹 Variables globales para las gráficas
+//  Variables globales para las gráficas
 let chartIncidentes;
 let chartEstados;
 
-// 1. Función para unificar nombres de incidentes (Crucial para que todo coincida)
+// 1. Función para unificar nombres de incidentes
 function normalizarTipo(tipo) {
     let t = tipo?.toLowerCase() || "otro";
     if (t.includes("atrop")) return "atropellamiento";
@@ -1298,7 +1287,7 @@ function generarHexgrid() {
   const mexicoPoligono = contornoMexico.features[0];
   const bbox = turf.bbox(mexicoPoligono);
 
-  // 🔹 Ajusta aquí el tamaño del hexágono (en km)
+  //  Ajusta el tamaño del hexágono (en km)
   const hexgrid = turf.hexGrid(bbox, 25, { units: 'kilometers' }); // Cambia a 5 si quieres más detalle
 
   const hexRecortado = {
@@ -1341,7 +1330,7 @@ function generarHexgrid() {
   capaHexgrid.addTo(map);
 }
 
-// 🔹 Alternar el hexgrid al hacer clic en el botón
+// Alternar el hexgrid al hacer clic en el botón
 function toggleHexgrid() {
 
   const btn = document.getElementById("btnHexgrid");
@@ -1365,7 +1354,7 @@ function toggleHexgrid() {
 }
 
 
-// 🔹 Función para definir estilo dinámico de la red vial según el mapa base
+// Función para definir estilo dinámico de la red vial según el mapa base
 function estiloRedVialPorBase(baseLayer) {
   const isDark = baseLayer === darkMatter; // Detectar si es fondo oscuro
 
@@ -1405,14 +1394,12 @@ fetch('https://raw.githubusercontent.com/EddBanda/geojsonsict/main/Red%20de%20Ca
     }).addTo(map);
   });
 
-// 🔄 Actualizar estilo cuando se cambia el mapa base
+//  Actualizar estilo cuando se cambia el mapa base
 map.on('baselayerchange', function (e) {
   if (capaRedVial) {
     capaRedVial.setStyle(estiloRedVialPorBase(e.layer));
   }
 });
-
-
 
 async function iniciarMapa(){
 
@@ -1442,7 +1429,6 @@ if(contenidoResumen.classList.contains("mostrar")){
 }
 
 });
-
 
 // BOTÓN DEL SIDEBAR
 const toggleSidebarBtn = document.getElementById("toggleSidebar");
@@ -1474,7 +1460,7 @@ function abrirImagen(src){
   imgGrande.style.transform = "scale(1)";
 }
 
-// 🔥 ZOOM (VA SOLO, NO DENTRO DE OTRO EVENTO)
+// ZOOM
 imgGrande.addEventListener("click", (e) => {
   e.stopPropagation();
 
